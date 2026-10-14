@@ -1,21 +1,43 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { calcularIndicadores } from "@/lib/indicadores";
+import { listarSetores, setorDoFiltro } from "@/lib/consultas";
+import { FiltroSetor } from "@/components/FiltroSetor";
 import { statusApi } from "@/lib/estoque-api";
-import { Cabecalho, Indicador, Status, Vazio, Aviso } from "@/components/ui";
-import { GraficoEstoque, GraficoFornecedores } from "@/components/Graficos";
+import { Cabecalho, Criticidade, Indicador, Status, Vazio, Aviso } from "@/components/ui";
+import { GraficoEstoque, GraficoFornecedores, GraficoSetores } from "@/components/Graficos";
 import { dataHora, duracao, moeda } from "@/lib/formato";
 import { sincronizarAgora } from "@/acoes/compras";
 
-export default async function Dashboard({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
-  const [produtos, necessidades, cotacoesAbertas, ind, apiOnline, ultimaSync] = await Promise.all([
-    prisma.produto.findMany({ where: { ativo: true } }),
-    prisma.necessidadeCompra.findMany({ where: { status: { in: ["ABERTA", "EM_COTACAO"] } }, include: { produto: true }, orderBy: { criadoEm: "desc" } }),
-    prisma.cotacao.count({ where: { status: "ABERTA" } }),
-    calcularIndicadores(),
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ setor?: string; erro?: string; ok?: string }> }) {
+  const setorId = setorDoFiltro((await searchParams).setor);
+  const doSetor = setorId ? { setorId } : {};
+  const [produtos, necessidades, cotacoesAbertas, ind, apiOnline, ultimaSync, setores] = await Promise.all([
+    prisma.produto.findMany({ where: { ativo: true, ...doSetor } }),
+    prisma.necessidadeCompra.findMany({
+      where: { status: { in: ["ABERTA", "EM_COTACAO"] }, produto: doSetor },
+      include: { produto: { include: { setor: true } } },
+      orderBy: [{ produto: { criticidade: "asc" } }, { criadoEm: "desc" }],
+    }),
+    prisma.cotacao.count({ where: { status: "ABERTA", necessidade: { produto: doSetor } } }),
+    calcularIndicadores(setorId),
     statusApi(),
     prisma.sincronizacao.findFirst({ orderBy: { iniciadoEm: "desc" } }),
+    listarSetores(),
   ]);
+  const criticosAbaixo = produtos.filter((p) => p.estoqueAtual < p.estoqueMinimo && p.criticidade === "ALTA").length;
+  const porSetor = setorId ? [] : await (async () => {
+    const todos = await prisma.produto.findMany({ where: { ativo: true }, select: { setorId: true, estoqueAtual: true, estoqueMinimo: true, criticidade: true } });
+    return setores.map((s) => {
+      const doS = todos.filter((p) => p.setorId === s.id && p.estoqueAtual < p.estoqueMinimo);
+      return {
+        sigla: s.sigla,
+        abaixo: doS.length,
+        criticos: doS.filter((p) => p.criticidade === "ALTA").length,
+        necessidades: necessidades.filter((n) => n.produto.setorId === s.id).length,
+      };
+    });
+  })();
   const abaixo = produtos.filter((p) => p.estoqueAtual < p.estoqueMinimo);
   const graficoEstoque = [...produtos]
     .sort((a, b) => a.estoqueAtual / Math.max(1, a.estoqueMinimo) - b.estoqueAtual / Math.max(1, b.estoqueMinimo))
@@ -24,7 +46,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   return (
     <div>
-      <Cabecalho titulo="Dashboard gerencial" descricao="Visão geral do estoque, das necessidades de compra e das decisões tomadas">
+      <Cabecalho titulo="Dashboard gerencial" descricao="Visão geral do estoque dos setores do hospital, das necessidades de compra e das decisões tomadas">
+        <FiltroSetor setores={setores} />
         <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${apiOnline ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
           <span className={`h-2 w-2 rounded-full ${apiOnline ? "bg-emerald-500" : "bg-red-500"}`} />
           API de estoque {apiOnline ? "online" : "offline"}
@@ -37,8 +60,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       <Aviso searchParams={searchParams} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Indicador titulo="Produtos abaixo do mínimo" valor={abaixo.length} detalhe={`de ${produtos.length} produtos monitorados`} cor={abaixo.length ? "text-red-600" : "text-emerald-600"} href="/produtos?filtro=abaixo" />
-        <Indicador titulo="Necessidades em aberto" valor={necessidades.length} detalhe={`${cotacoesAbertas} cotação(ões) em andamento`} cor="text-amber-600" href="/necessidades" />
+        <Indicador titulo="Produtos abaixo do mínimo" valor={abaixo.length} detalhe={`${criticosAbaixo} crítico(s) ao paciente · ${produtos.length} monitorados`} cor={abaixo.length ? "text-red-600" : "text-emerald-600"} href={`/produtos?filtro=abaixo${setorId ? `&setor=${setorId}` : ""}`} />
+        <Indicador titulo="Necessidades em aberto" valor={necessidades.length} detalhe={`${cotacoesAbertas} cotação(ões) em andamento`} cor="text-amber-600" href={`/necessidades${setorId ? `?setor=${setorId}` : ""}`} />
         <Indicador titulo="Valor aprovado em compras" valor={moeda(ind.valorAprovado)} detalhe={`${ind.totalDecisoes} compra(s) aprovada(s)`} href="/historico" />
         <Indicador titulo="Economia estimada" valor={moeda(ind.economia)} detalhe="vs. proposta mais cara recebida" cor="text-emerald-600" href="/historico" />
       </div>
@@ -49,6 +72,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <Indicador titulo="Propostas comparadas por cotação" valor={ind.mediaPropostasPorCotacao ? ind.mediaPropostasPorCotacao.toFixed(1) : "-"} />
         <Indicador titulo="Última leitura da API" valor={ultimaSync ? `${ultimaSync.duracaoMs} ms` : "-"} detalhe={ultimaSync ? dataHora(ultimaSync.iniciadoEm) : "nenhuma sincronização"} href="/integracao" />
       </div>
+
+      {porSetor.length > 0 && (
+        <div className="card mt-6">
+          <h2 className="mb-3">Situação por setor do hospital</h2>
+          <GraficoSetores dados={porSetor} />
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="card xl:col-span-2">
@@ -71,12 +101,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         ) : (
           <table className="tabela">
             <thead>
-              <tr><th>Produto</th><th>Estoque</th><th>Mínimo</th><th>Comprar</th><th>Status</th><th>Detectado em</th></tr>
+              <tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque</th><th>Mínimo</th><th>Comprar</th><th>Status</th><th>Detectado em</th></tr>
             </thead>
             <tbody>
-              {necessidades.slice(0, 6).map((n) => (
+              {necessidades.slice(0, 8).map((n) => (
                 <tr key={n.id}>
                   <td><span className="font-mono text-xs text-slate-500">{n.produto.sku}</span> {n.produto.nome}</td>
+                  <td className="text-sm">{n.produto.setor?.sigla ?? "-"}</td>
+                  <td><Criticidade valor={n.produto.criticidade} /></td>
                   <td className="font-semibold text-red-600">{n.estoqueNoMomento}</td>
                   <td>{n.estoqueMinimo}</td>
                   <td>{n.quantidade} {n.produto.unidade}</td>

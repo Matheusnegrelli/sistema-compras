@@ -11,7 +11,7 @@ export async function carregarCotacao(id: number) {
   const cotacao = await prisma.cotacao.findUnique({
     where: { id },
     include: {
-      necessidade: { include: { produto: true } },
+      necessidade: { include: { produto: { include: { setor: true } } } },
       propostas: { include: { fornecedor: true }, orderBy: { criadoEm: "asc" } },
       decisao: { include: { gestor: true, proposta: { include: { fornecedor: true } } } },
       criadoPor: true,
@@ -33,4 +33,14 @@ export async function carregarCotacao(id: number) {
     pesos,
   );
   return { cotacao, ranking, pesos };
+}
+
+export async function listarSetores() {
+  return prisma.setor.findMany({ where: { ativo: true }, orderBy: { nome: "asc" }, select: { id: true, nome: true, sigla: true } });
+}
+
+/** Converte o parâmetro ?setor= em id numérico (ou undefined para todos). */
+export function setorDoFiltro(valor?: string) {
+  const id = Number(valor);
+  return Number.isInteger(id) && id > 0 ? id : undefined;
 }

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Aviso, Cabecalho, Status } from "@/components/ui";
 import { FormProduto } from "@/components/FormProduto";
+import { listarSetores } from "@/lib/consultas";
 import { dataHora } from "@/lib/formato";
 
 export default async function EditarProduto({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ erro?: string }> }) {
@@ -15,7 +16,7 @@ export default async function EditarProduto({ params, searchParams }: { params: 
     <div>
       <Cabecalho titulo={`Editar ${produto.sku}`} descricao={`Estoque atual na API: ${produto.estoqueAtual} ${produto.unidade}`} />
       <Aviso searchParams={searchParams} />
-      <FormProduto produto={produto} />
+      <FormProduto produto={produto} setores={await listarSetores()} />
       <div className="card mt-6 max-w-2xl">
         <h2 className="mb-3">Histórico de necessidades deste produto</h2>
         {produto.necessidades.length === 0 ? <p className="text-sm text-slate-500">Nenhuma.</p> : (

@@ -35,6 +35,9 @@ const CORES: Record<string, string> = {
   ADMIN: "bg-rose-100 text-rose-800",
   GESTOR: "bg-indigo-100 text-indigo-800",
   COMPRADOR: "bg-teal-100 text-teal-800",
+  ALTA: "bg-red-100 text-red-800",
+  MEDIA: "bg-amber-100 text-amber-800",
+  BAIXA: "bg-slate-100 text-slate-600",
 };
 
 export function Status({ valor }: { valor: string }) {
@@ -79,6 +82,15 @@ export function Estrelas({ nota }: { nota: number }) {
       <span className="text-amber-500">{"★".repeat(Math.round(nota))}</span>
       <span className="text-slate-300">{"★".repeat(5 - Math.round(nota))}</span>
       <span className="ml-1 text-xs text-slate-500">{nota.toFixed(1)}</span>
+    </span>
+  );
+}
+
+/** Criticidade do item para o atendimento ao paciente. */
+export function Criticidade({ valor }: { valor: string }) {
+  return (
+    <span className={`inline-flex h-fit whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${CORES[valor]}`}>
+      {valor === "ALTA" ? "⚠ Crítico" : ROTULO_STATUS[valor]}
     </span>
   );
 }

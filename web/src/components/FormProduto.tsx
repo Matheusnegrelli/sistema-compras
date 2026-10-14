@@ -2,7 +2,12 @@ import type { Produto } from "@prisma/client";
 import Link from "next/link";
 import { salvarProduto } from "@/acoes/cadastros";
 
-export function FormProduto({ produto }: { produto?: Produto }) {
+export const CATEGORIAS = [
+  "Medicamento", "Material médico-hospitalar", "EPI", "Laboratório", "Nutrição", "Higiene do paciente",
+  "Limpeza e desinfecção", "Resíduos de saúde", "Descartáveis", "Escritório",
+];
+
+export function FormProduto({ produto, setores }: { produto?: Produto; setores: { id: number; nome: string }[] }) {
   return (
     <form action={salvarProduto} className="card max-w-2xl space-y-4">
       {produto && <input type="hidden" name="id" value={produto.id} />}
@@ -14,6 +19,27 @@ export function FormProduto({ produto }: { produto?: Produto }) {
         <div className="sm:col-span-2">
           <label className="rotulo">Nome</label>
           <input className="campo" name="nome" required defaultValue={produto?.nome} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="rotulo">Setor responsável</label>
+          <select className="campo" name="setorId" required defaultValue={produto?.setorId ?? ""}>
+            <option value="">Selecione</option>
+            {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="rotulo">Criticidade</label>
+          <select className="campo" name="criticidade" defaultValue={produto?.criticidade ?? "MEDIA"}>
+            <option value="ALTA">Alta (crítico ao paciente)</option>
+            <option value="MEDIA">Média</option>
+            <option value="BAIXA">Baixa</option>
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="rotulo">Categoria</label>
+          <select className="campo" name="categoria" defaultValue={produto?.categoria ?? "Material médico-hospitalar"}>
+            {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
+          </select>
         </div>
         <div>
           <label className="rotulo">Unidade</label>

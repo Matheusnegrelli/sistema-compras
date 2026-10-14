@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { calcularIndicadores } from "@/lib/indicadores";
+import { listarSetores, setorDoFiltro } from "@/lib/consultas";
+import { FiltroSetor } from "@/components/FiltroSetor";
 import { Cabecalho, Indicador, Vazio } from "@/components/ui";
 import { dataHora, duracao, moeda } from "@/lib/formato";
 import type { PropostaClassificada } from "@/lib/pontuacao";
 
-export default async function Historico() {
-  const ind = await calcularIndicadores();
+export default async function Historico({ searchParams }: { searchParams: Promise<{ setor?: string }> }) {
+  const { setor } = await searchParams;
+  const ind = await calcularIndicadores(setorDoFiltro(setor));
   return (
     <div>
       <Cabecalho titulo="Histórico e relatórios" descricao="Histórico de cotações e decisões de compra (RF10, RF12)">
-        <a href="/api/relatorios/decisoes" className="btn-secundario">⬇️ Exportar CSV</a>
+        <FiltroSetor setores={await listarSetores()} />
+        <a href={`/api/relatorios/decisoes${setor ? `?setor=${setor}` : ""}`} className="btn-secundario">⬇️ Exportar CSV</a>
       </Cabecalho>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Indicador titulo="Compras aprovadas" valor={ind.totalDecisoes} />
@@ -22,7 +26,7 @@ export default async function Historico() {
           <div className="p-5"><Vazio>Nenhuma decisão registrada ainda.</Vazio></div>
         ) : (
           <table className="tabela">
-            <thead><tr><th>Data</th><th>Produto</th><th>Fornecedor</th><th>Propostas</th><th>Pontuação</th><th>Valor</th><th>Recomendação</th><th>Entrega</th><th></th></tr></thead>
+            <thead><tr><th>Data</th><th>Produto</th><th>Setor</th><th>Fornecedor</th><th>Propostas</th><th>Pontuação</th><th>Valor</th><th>Recomendação</th><th>Entrega</th><th></th></tr></thead>
             <tbody>
               {ind.decisoes.map((d) => {
                 const ranking = d.ranking as unknown as PropostaClassificada[];
@@ -31,6 +35,7 @@ export default async function Historico() {
                   <tr key={d.id}>
                     <td className="text-xs">{dataHora(d.decididoEm)}</td>
                     <td>{d.cotacao.necessidade.produto.nome}</td>
+                    <td className="text-sm">{d.cotacao.necessidade.produto.setor?.nome ?? "-"}</td>
                     <td className="font-medium">{d.proposta.fornecedor.nome}</td>
                     <td>{ranking.length}</td>
                     <td>{d.pontuacao.toFixed(1)}</td>

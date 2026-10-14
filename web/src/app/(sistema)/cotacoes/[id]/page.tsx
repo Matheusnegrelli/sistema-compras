@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { carregarCotacao } from "@/lib/consultas";
 import { obterSessao, podeAprovar } from "@/lib/auth";
-import { Aviso, Cabecalho, Estrelas, Status, Vazio } from "@/components/ui";
+import { Aviso, Cabecalho, Criticidade, Estrelas, Status, Vazio } from "@/components/ui";
 import { GraficoPontuacao } from "@/components/Graficos";
 import { dataHora, dias, moeda } from "@/lib/formato";
 import type { PropostaClassificada } from "@/lib/pontuacao";
@@ -29,8 +29,9 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
     <div>
       <Cabecalho
         titulo={`Cotação #${cotacao.id} · ${necessidade.produto.nome}`}
-        descricao={`${necessidade.quantidade} ${necessidade.produto.unidade} · estoque no alerta ${necessidade.estoqueNoMomento} (mínimo ${necessidade.estoqueMinimo}) · aberta por ${cotacao.criadoPor?.nome ?? "-"} em ${dataHora(cotacao.criadoEm)}`}
+        descricao={`${necessidade.produto.setor?.nome ?? "Sem setor"} · ${necessidade.quantidade} ${necessidade.produto.unidade} · estoque no alerta ${necessidade.estoqueNoMomento} (mínimo ${necessidade.estoqueMinimo}) · aberta por ${cotacao.criadoPor?.nome ?? "-"} em ${dataHora(cotacao.criadoEm)}`}
       >
+        {necessidade.produto.criticidade === "ALTA" && <Criticidade valor="ALTA" />}
         <Status valor={cotacao.status} />
         {ranking.length > 0 && <Link href={`/cotacoes/${cotacao.id}/relatorio`} className="btn-secundario">🖨️ Relatório de apoio à decisão</Link>}
       </Cabecalho>

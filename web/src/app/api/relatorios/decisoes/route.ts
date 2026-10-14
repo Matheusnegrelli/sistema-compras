@@ -1,4 +1,5 @@
 import { calcularIndicadores } from "@/lib/indicadores";
+import { setorDoFiltro } from "@/lib/consultas";
 import { obterSessao } from "@/lib/auth";
 import type { PropostaClassificada } from "@/lib/pontuacao";
 
@@ -10,17 +11,17 @@ function csv(v: unknown) {
 }
 
 /** Exporta o histórico de decisões em CSV (abre no Excel). */
-export async function GET() {
+export async function GET(req: Request) {
   if (!(await obterSessao())) return new Response("Não autorizado", { status: 401 });
-  const { decisoes } = await calcularIndicadores();
+  const { decisoes } = await calcularIndicadores(setorDoFiltro(new URL(req.url).searchParams.get("setor") ?? undefined));
   const linhas = [
-    ["cotacao", "data_alerta", "data_decisao", "produto", "quantidade", "fornecedor", "preco_unitario", "prazo_dias", "valor_total", "pontuacao", "propostas_comparadas", "seguiu_recomendacao", "justificativa", "gestor_id", "entregue_no_prazo", "avaliacao"],
+    ["cotacao", "data_alerta", "data_decisao", "setor", "produto", "quantidade", "fornecedor", "preco_unitario", "prazo_dias", "valor_total", "pontuacao", "propostas_comparadas", "seguiu_recomendacao", "justificativa", "gestor_id", "entregue_no_prazo", "avaliacao"],
   ];
   for (const d of decisoes) {
     const ranking = d.ranking as unknown as PropostaClassificada[];
     const e = ranking.find((r) => r.id === d.propostaId);
     linhas.push([
-      d.cotacaoId, d.cotacao.necessidade.criadoEm.toISOString(), d.decididoEm.toISOString(), d.cotacao.necessidade.produto.nome,
+      d.cotacaoId, d.cotacao.necessidade.criadoEm.toISOString(), d.decididoEm.toISOString(), d.cotacao.necessidade.produto.setor?.nome, d.cotacao.necessidade.produto.nome,
       d.cotacao.necessidade.quantidade, d.proposta.fornecedor.nome, e?.precoUnitario, e?.prazoEntregaDias, e?.valorTotal, d.pontuacao,
       ranking.length, d.seguiuRecomendacao ? "sim" : "nao", d.justificativa, d.gestorId,
       d.entregueNoPrazo == null ? "" : d.entregueNoPrazo ? "sim" : "nao", d.avaliacao,

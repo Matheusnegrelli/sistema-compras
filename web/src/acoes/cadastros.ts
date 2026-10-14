@@ -22,9 +22,17 @@ export async function salvarProduto(fd: FormData) {
   const duplicado = await prisma.produto.findFirst({ where: { sku, NOT: { id } } });
   if (duplicado) falhar(volta, `Já existe um produto com o SKU ${sku}`);
 
+  const setorId = Number(fd.get("setorId"));
+  if (!setorId) falhar(volta, "Selecione o setor responsável pelo produto");
+  const criticidade = texto(fd, "criticidade") as "ALTA" | "MEDIA" | "BAIXA";
+  if (!["ALTA", "MEDIA", "BAIXA"].includes(criticidade)) falhar(volta, "Criticidade inválida");
+
   const dados = {
     sku,
     nome,
+    setorId,
+    criticidade,
+    categoria: texto(fd, "categoria") || "Material médico-hospitalar",
     unidade: texto(fd, "unidade").toUpperCase() || "UN",
     estoqueMinimo,
     quantidadeReposicao: Number.isInteger(reposicao) && reposicao > 0 ? reposicao : null,
@@ -109,4 +117,21 @@ export async function salvarPesos(fd: FormData) {
   await prisma.configuracaoPesos.upsert({ where: { id: 1 }, create: { id: 1, ...pesos }, update: pesos });
   await registrarLog(sessao.id, "PESOS_ALTERADOS", "ConfiguracaoPesos", 1, JSON.stringify(pesos));
   sucesso("/configuracoes", "Pesos atualizados");
+}
+
+// ---------- Setores do hospital ----------
+export async function salvarSetor(fd: FormData) {
+  const sessao = await exigirSessao("GESTOR");
+  const id = Number(fd.get("id") || 0);
+  const volta = id ? `/setores?editar=${id}` : "/setores";
+  const nome = texto(fd, "nome");
+  const sigla = texto(fd, "sigla").toUpperCase();
+  if (!nome || !sigla) falhar(volta, "Informe nome e sigla do setor");
+  const duplicado = await prisma.setor.findFirst({ where: { OR: [{ nome }, { sigla }], NOT: { id } } });
+  if (duplicado) falhar(volta, "Já existe um setor com este nome ou sigla");
+  const dados = { nome, sigla, responsavel: texto(fd, "responsavel") || null, ativo: id ? fd.get("ativo") === "on" : true };
+  const setor = id ? await prisma.setor.update({ where: { id }, data: dados }) : await prisma.setor.create({ data: dados });
+  await registrarLog(sessao.id, id ? "SETOR_ALTERADO" : "SETOR_CRIADO", "Setor", setor.id, `${sigla} - ${nome}`);
+  revalidatePath("/setores");
+  sucesso("/setores", `Setor ${nome} salvo`);
 }

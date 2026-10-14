@@ -27,6 +27,9 @@ export const ROTULO_STATUS: Record<string, string> = {
   ADMIN: "Administrador",
   COMPRADOR: "Comprador",
   GESTOR: "Gestor",
+  ALTA: "Alta",
+  MEDIA: "Média",
+  BAIXA: "Baixa",
 };
 
 export function formatarCnpj(c: string) {

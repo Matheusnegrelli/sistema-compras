@@ -27,6 +27,12 @@ enum StatusCotacao {
   CANCELADA
 }
 
+enum Criticidade {
+  ALTA
+  MEDIA
+  BAIXA
+}
+
 enum Origem {
   AUTOMATICA
   MANUAL
@@ -46,11 +52,27 @@ model Usuario {
   logs      Log[]
 }
 
+/// Setor do hospital (Farmácia, UTI, Centro Cirúrgico...) que consome e controla os itens
+model Setor {
+  id          Int       @id @default(autoincrement())
+  nome        String    @unique
+  sigla       String    @unique
+  responsavel String?
+  ativo       Boolean   @default(true)
+  criadoEm    DateTime  @default(now())
+  produtos    Produto[]
+}
+
 model Produto {
   id                  Int                 @id @default(autoincrement())
   sku                 String              @unique
   nome                String
   unidade             String              @default("UN")
+  setorId             Int?
+  setor               Setor?              @relation(fields: [setorId], references: [id])
+  categoria           String              @default("Material médico-hospitalar")
+  /// Itens de criticidade alta (ex.: medicamentos de UTI) aparecem primeiro nos alertas
+  criticidade         Criticidade         @default(MEDIA)
   estoqueMinimo       Int                 @default(0)
   estoqueAtual        Int                 @default(0)
   /// Quantidade padrão a comprar quando o item fica abaixo do mínimo (opcional)

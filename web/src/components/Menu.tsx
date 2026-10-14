@@ -8,6 +8,7 @@ const ITENS = [
   { href: "/necessidades", rotulo: "Necessidades de compra", icone: "🚨" },
   { href: "/cotacoes", rotulo: "Cotações", icone: "📝" },
   { href: "/historico", rotulo: "Histórico e relatórios", icone: "📚" },
+  { href: "/setores", rotulo: "Setores do hospital", icone: "🏥" },
   { href: "/produtos", rotulo: "Produtos", icone: "📦" },
   { href: "/fornecedores", rotulo: "Fornecedores", icone: "🏭" },
   { href: "/integracao", rotulo: "Integração (API)", icone: "🔌" },

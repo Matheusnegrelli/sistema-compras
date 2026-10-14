@@ -2,9 +2,10 @@ import { prisma } from "./db";
 import type { PropostaClassificada } from "./pontuacao";
 
 /** Indicadores usados no dashboard e no relatório de resultados (H1 a H4). */
-export async function calcularIndicadores() {
+export async function calcularIndicadores(setorId?: number) {
   const decisoes = await prisma.decisao.findMany({
-    include: { cotacao: { include: { necessidade: { include: { produto: true } } } }, proposta: { include: { fornecedor: true } } },
+    where: setorId ? { cotacao: { necessidade: { produto: { setorId } } } } : {},
+    include: { cotacao: { include: { necessidade: { include: { produto: { include: { setor: true } } } } } }, proposta: { include: { fornecedor: true } } },
     orderBy: { decididoEm: "desc" },
   });
   const sincronizacoes = await prisma.sincronizacao.findMany({ where: { sucesso: true }, orderBy: { iniciadoEm: "desc" }, take: 50 });

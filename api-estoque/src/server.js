@@ -1,7 +1,7 @@
 /**
  * API de Estoque Simulada
  *
- * Representa o sistema de estoque (ERP/almoxarifado) da organização. A plataforma de
+ * Representa o sistema de estoque (ERP/almoxarifado) do hospital, com os itens de cada setor. A plataforma de
  * compras consulta esta API para obter as quantidades atuais dos produtos, sem digitação
  * manual (RF04 / RNF06). Os dados ficam em data/estoque.json.
  */
@@ -18,14 +18,20 @@ function agora() {
   return new Date().toISOString();
 }
 
+// Versão da massa de dados: quando muda, o arquivo salvo é recriado com os dados iniciais
+const VERSAO_DADOS = 3;
+
 function carregar() {
-  if (fs.existsSync(ARQUIVO)) return JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+  if (fs.existsSync(ARQUIVO)) {
+    const salvo = JSON.parse(fs.readFileSync(ARQUIVO, "utf8"));
+    if (salvo.versao === VERSAO_DADOS) return salvo.itens;
+  }
   return resetar();
 }
 
 function salvar(itens) {
   fs.mkdirSync(path.dirname(ARQUIVO), { recursive: true });
-  fs.writeFileSync(ARQUIVO, JSON.stringify(itens, null, 2));
+  fs.writeFileSync(ARQUIVO, JSON.stringify({ versao: VERSAO_DADOS, itens }, null, 2));
 }
 
 function resetar() {
@@ -56,8 +62,10 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
-app.get("/api/v1/estoque", (_req, res) => {
-  res.json({ geradoEm: agora(), total: estoque.length, itens: estoque });
+// Lista o estoque; aceita ?setor=Nome do setor para filtrar
+app.get("/api/v1/estoque", (req, res) => {
+  const itens = req.query.setor ? estoque.filter((i) => i.setor === req.query.setor) : estoque;
+  res.json({ geradoEm: agora(), total: itens.length, itens });
 });
 
 app.get("/api/v1/estoque/:sku", (req, res) => {

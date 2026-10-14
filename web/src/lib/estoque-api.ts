@@ -1,6 +1,6 @@
 /** Cliente da API de Estoque (real ou simulada), configurado por variáveis de ambiente. */
 
-export type ItemEstoque = { sku: string; descricao: string; unidade: string; quantidade: number; atualizadoEm: string };
+export type ItemEstoque = { sku: string; descricao: string; setor?: string; unidade: string; quantidade: number; atualizadoEm: string };
 
 const URL_BASE = () => process.env.ESTOQUE_API_URL || "http://localhost:4000";
 

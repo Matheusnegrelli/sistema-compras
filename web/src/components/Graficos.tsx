@@ -57,3 +57,20 @@ export function GraficoPontuacao({ dados }: { dados: { fornecedor: string; preco
     </ResponsiveContainer>
   );
 }
+
+export function GraficoSetores({ dados }: { dados: { sigla: string; abaixo: number; criticos: number; necessidades: number }[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={dados} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+        <XAxis dataKey="sigla" tick={{ fontSize: 11 }} />
+        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Bar isAnimationActive={false} dataKey="abaixo" name="Itens abaixo do mínimo" fill={PALETA[0]} radius={[4, 4, 0, 0]} />
+        <Bar isAnimationActive={false} dataKey="criticos" name="Críticos abaixo do mínimo" fill="#dc2626" radius={[4, 4, 0, 0]} />
+        <Bar isAnimationActive={false} dataKey="necessidades" name="Necessidades em aberto" fill={PALETA[2]} radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}

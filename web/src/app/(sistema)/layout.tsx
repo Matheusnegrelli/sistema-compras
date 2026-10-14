@@ -14,7 +14,7 @@ export default async function LayoutSistema({ children }: { children: React.Reac
       <aside className="nao-imprimir sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-marca-900 to-marca-700 p-4 text-white">
         <div className="mb-6 px-2">
           <p className="text-xl font-bold">CompraCerta</p>
-          <p className="text-xs text-marca-200">Apoio à decisão em compras</p>
+          <p className="text-xs text-marca-200">Compras hospitalares</p>
         </div>
         <Menu admin={sessao.perfil === "ADMIN"} alertas={alertas} />
         <div className="mt-auto rounded-lg bg-white/10 p-3 text-sm">

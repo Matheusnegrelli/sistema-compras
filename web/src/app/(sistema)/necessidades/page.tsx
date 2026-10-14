@@ -1,20 +1,33 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Aviso, Cabecalho, Status, Vazio } from "@/components/ui";
+import { Aviso, Cabecalho, Criticidade, Status, Vazio } from "@/components/ui";
+import { FiltroSetor } from "@/components/FiltroSetor";
+import { listarSetores, setorDoFiltro } from "@/lib/consultas";
 import { dataHora } from "@/lib/formato";
 import { cancelarNecessidade, criarNecessidadeManual, gerarCotacao, sincronizarAgora } from "@/acoes/compras";
 
-export default async function Necessidades({ searchParams }: { searchParams: Promise<{ status?: string; erro?: string; ok?: string }> }) {
-  const { status } = await searchParams;
-  const filtro = status === "todas" ? {} : { status: { in: ["ABERTA", "EM_COTACAO"] as ("ABERTA" | "EM_COTACAO")[] } };
+export default async function Necessidades({ searchParams }: { searchParams: Promise<{ status?: string; setor?: string; erro?: string; ok?: string }> }) {
+  const { status, setor } = await searchParams;
+  const setorId = setorDoFiltro(setor);
+  const filtro = {
+    ...(status === "todas" ? {} : { status: { in: ["ABERTA", "EM_COTACAO"] as ("ABERTA" | "EM_COTACAO")[] } }),
+    ...(setorId ? { produto: { setorId } } : {}),
+  };
   const [necessidades, produtos] = await Promise.all([
-    prisma.necessidadeCompra.findMany({ where: filtro, include: { produto: true, cotacao: true }, orderBy: { criadoEm: "desc" }, take: 100 }),
-    prisma.produto.findMany({ where: { ativo: true }, orderBy: { sku: "asc" } }),
+    prisma.necessidadeCompra.findMany({
+      where: filtro,
+      include: { produto: { include: { setor: true } }, cotacao: true },
+      // Itens críticos ao paciente aparecem primeiro
+      orderBy: [{ produto: { criticidade: "asc" } }, { criadoEm: "desc" }],
+      take: 100,
+    }),
+    prisma.produto.findMany({ where: { ativo: true, ...(setorId ? { setorId } : {}) }, include: { setor: true }, orderBy: { sku: "asc" } }),
   ]);
 
   return (
     <div>
-      <Cabecalho titulo="Necessidades de compra" descricao="Alertas gerados automaticamente quando um produto fica abaixo do estoque mínimo (RF05, RF06)">
+      <Cabecalho titulo="Necessidades de compra" descricao="Alertas gerados automaticamente quando um item de qualquer setor fica abaixo do estoque mínimo (RF05, RF06)">
+        <FiltroSetor setores={await listarSetores()} />
         <form action={sincronizarAgora}>
           <input type="hidden" name="volta" value="/necessidades" />
           <button className="btn-primario">🔄 Verificar estoque agora</button>
@@ -23,8 +36,8 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
       <Aviso searchParams={searchParams} />
 
       <div className="mb-4 flex gap-2 text-sm">
-        <Link href="/necessidades" className={!status ? "btn-primario" : "btn-secundario"}>Em aberto</Link>
-        <Link href="/necessidades?status=todas" className={status === "todas" ? "btn-primario" : "btn-secundario"}>Todas</Link>
+        <Link href={`/necessidades${setor ? `?setor=${setor}` : ""}`} className={!status ? "btn-primario" : "btn-secundario"}>Em aberto</Link>
+        <Link href={`/necessidades?status=todas${setor ? `&setor=${setor}` : ""}`} className={status === "todas" ? "btn-primario" : "btn-secundario"}>Todas</Link>
       </div>
 
       <div className="card overflow-x-auto p-0">
@@ -33,19 +46,19 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
         ) : (
           <table className="tabela">
             <thead>
-              <tr><th>#</th><th>Produto</th><th>Estoque no alerta</th><th>Mínimo</th><th>Qtd. a comprar</th><th>Origem</th><th>Status</th><th>Detectado em</th><th></th></tr>
+              <tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque</th><th>Mínimo</th><th>Comprar</th><th>Status</th><th>Detectado</th><th></th></tr>
             </thead>
             <tbody>
               {necessidades.map((n) => (
                 <tr key={n.id}>
-                  <td className="text-slate-400">{n.id}</td>
-                  <td><span className="font-mono text-xs text-slate-500">{n.produto.sku}</span> {n.produto.nome}</td>
+                  <td className="min-w-[220px]"><span className="font-mono text-xs text-slate-500">{n.produto.sku}</span> {n.produto.nome}</td>
+                  <td className="text-sm">{n.produto.setor?.sigla ?? "-"}</td>
+                  <td><Criticidade valor={n.produto.criticidade} /></td>
                   <td className="font-semibold text-red-600">{n.estoqueNoMomento}</td>
                   <td>{n.estoqueMinimo}</td>
-                  <td>{n.quantidade} {n.produto.unidade}</td>
-                  <td><Status valor={n.origem} /></td>
+                  <td className="whitespace-nowrap">{n.quantidade} {n.produto.unidade}</td>
                   <td><Status valor={n.status} /></td>
-                  <td className="text-xs">{dataHora(n.criadoEm)}</td>
+                  <td className="text-xs">{dataHora(n.criadoEm)}<div className="text-slate-400">{n.origem === "AUTOMATICA" ? "via API" : "manual"}</div></td>
                   <td className="whitespace-nowrap">
                     {n.cotacao ? (
                       <Link className="link" href={`/cotacoes/${n.cotacao.id}`}>Ver cotação</Link>
@@ -76,7 +89,7 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
             <label className="rotulo">Produto</label>
             <select className="campo" name="produtoId" required>
               <option value="">Selecione</option>
-              {produtos.map((p) => <option key={p.id} value={p.id}>{p.sku} - {p.nome} (estoque {p.estoqueAtual})</option>)}
+              {produtos.map((p) => <option key={p.id} value={p.id}>{p.sku} - {p.nome} · {p.setor?.sigla} (estoque {p.estoqueAtual})</option>)}
             </select>
           </div>
           <div className="w-32">

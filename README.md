@@ -1,8 +1,8 @@
-# CompraCerta: Sistema Web de Apoio à Decisão na Gestão de Compras
+# CompraCerta Hospitalar: Sistema Web de Apoio à Decisão na Gestão de Compras
 
 Protótipo do TCC "Sistema Web de Apoio à Decisão na Gestão de Compras com Integração via API e Automação de Cotações" (Sistemas de Informação, UNESC).
 
-O sistema consulta o estoque por uma API, identifica automaticamente os produtos abaixo do estoque mínimo, gera necessidades de compra, registra ou simula propostas de fornecedores, classifica as propostas por pontuação ponderada e entrega ao gestor um relatório para que ele tome a decisão final.
+O sistema foi aplicado ao contexto hospitalar e abrange todos os setores do hospital (Farmácia, UTI, Centro Cirúrgico, Pronto-Socorro, Internação, Laboratório, Nutrição, Higienização e Administrativo). Ele consulta o estoque por uma API, identifica automaticamente os produtos abaixo do estoque mínimo, gera necessidades de compra, registra ou simula propostas de fornecedores, classifica as propostas por pontuação ponderada e entrega ao gestor um relatório para que ele tome a decisão final.
 
 ## Arquitetura
 
@@ -40,6 +40,7 @@ O sistema consulta o estoque por uma API, identifica automaticamente os produtos
 | RNF03 | Logs das operações | Logs |
 | RNF06 | Testes com API simulada | `api-estoque/` + botão "Simular consumo" |
 | Escopo | Cadastro de usuários e perfis | Usuários (Administrador, Gestor, Comprador) |
+| Hospital | Setores e criticidade dos itens | Setores do hospital; filtro por setor em dashboard, produtos, necessidades, cotações e histórico; itens críticos ao paciente aparecem primeiro |
 
 ## Algoritmo de comparação
 
@@ -94,14 +95,15 @@ npm run build && npm start    # ou: npm run dev
 ## Roteiro de demonstração
 
 1. Entrar como gestor. O dashboard mostra os produtos, os indicadores e o histórico já carregado.
-2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 7 itens abaixo do mínimo.
-3. Em **Necessidades de compra**, clicar em **Gerar cotação** em um item.
-4. Clicar em **Simular propostas dos fornecedores** e mostrar o ranking: o menor preço nem sempre vence.
-5. Abrir o **Relatório de apoio à decisão** e salvar em PDF.
-6. Voltar e **Aprovar compra**. Tentar escolher outra proposta sem justificativa mostra o bloqueio.
-7. **Registrar recebimento**: a nota do fornecedor muda e o estoque recebe a entrada pela API.
-8. Mostrar **Histórico**, exportar o CSV e mostrar os **Logs**.
-9. Em **Integração (API)**, clicar em **Simular consumo** e sincronizar de novo para gerar novos alertas.
+2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 12 itens abaixo do mínimo, de vários setores, com os críticos ao paciente no topo.
+3. Usar o filtro de setor (ex.: UTI Adulto) para mostrar a visão de um setor só.
+4. Em **Necessidades de compra**, clicar em **Gerar cotação** em um item.
+5. Clicar em **Simular propostas dos fornecedores** e mostrar o ranking: o menor preço nem sempre vence.
+6. Abrir o **Relatório de apoio à decisão** e salvar em PDF.
+7. Voltar e **Aprovar compra**. Tentar escolher outra proposta sem justificativa mostra o bloqueio.
+8. **Registrar recebimento**: a nota do fornecedor muda e o estoque recebe a entrada pela API.
+9. Mostrar **Histórico**, exportar o CSV e mostrar os **Logs**.
+10. Em **Integração (API)**, clicar em **Simular consumo** e sincronizar de novo para gerar novos alertas.
 
 ## Testes
 
@@ -116,6 +118,7 @@ npm test   # testes do algoritmo de pontuação (Vitest)
 api-estoque/src/server.js        API REST simulada
 web/prisma/schema.prisma         modelo de dados
 web/prisma/seed.ts               dados de demonstração
+web/prisma/dados-hospital.ts     setores, itens hospitalares e fornecedores fictícios
 web/src/lib/pontuacao.ts         algoritmo de comparação (+ testes)
 web/src/lib/sincronizacao.ts     rotina de verificação do estoque
 web/src/acoes/                   regras de negócio (server actions)

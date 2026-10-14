@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { carregarCotacao } from "@/lib/consultas";
-import { dataHora, dias, moeda } from "@/lib/formato";
+import { dataHora, dias, moeda, ROTULO_STATUS } from "@/lib/formato";
 import type { PropostaClassificada } from "@/lib/pontuacao";
 import { BotaoImprimir } from "@/components/BotaoImprimir";
 
@@ -19,13 +19,15 @@ export default async function Relatorio({ params }: { params: Promise<{ id: stri
     <div className="mx-auto max-w-4xl bg-white p-8 shadow-sm print:p-0 print:shadow-none">
       <div className="nao-imprimir mb-6 flex justify-end"><BotaoImprimir /></div>
       <div className="border-b border-slate-200 pb-4">
-        <p className="text-xs uppercase tracking-wide text-slate-500">CompraCerta · Relatório de apoio à decisão</p>
+        <p className="text-xs uppercase tracking-wide text-slate-500">CompraCerta Hospitalar · Relatório de apoio à decisão</p>
         <h1 className="mt-1">Cotação #{cotacao.id}: {n.produto.nome}</h1>
         <p className="text-sm text-slate-500">Emitido em {dataHora(new Date())}</p>
       </div>
 
       <section className="mt-6 grid grid-cols-2 gap-4 text-sm">
         <div><p className="text-slate-500">Produto</p><p className="font-medium">{n.produto.sku} · {n.produto.nome}</p></div>
+        <div><p className="text-slate-500">Setor solicitante</p><p className="font-medium">{n.produto.setor?.nome ?? "-"}</p></div>
+        <div><p className="text-slate-500">Criticidade / categoria</p><p className="font-medium">{ROTULO_STATUS[n.produto.criticidade]} · {n.produto.categoria}</p></div>
         <div><p className="text-slate-500">Quantidade necessária</p><p className="font-medium">{n.quantidade} {n.produto.unidade}</p></div>
         <div><p className="text-slate-500">Estoque no alerta / mínimo</p><p className="font-medium">{n.estoqueNoMomento} / {n.estoqueMinimo}</p></div>
         <div><p className="text-slate-500">Alerta gerado em</p><p className="font-medium">{dataHora(n.criadoEm)} ({n.origem === "AUTOMATICA" ? "automático via API" : "manual"})</p></div>

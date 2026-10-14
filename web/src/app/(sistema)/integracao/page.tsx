@@ -22,7 +22,7 @@ export default async function Integracao({ searchParams }: { searchParams: Promi
 
   return (
     <div>
-      <Cabecalho titulo="Integração com o estoque (API)" descricao="Consulta automática ao sistema de estoque por API REST (RF04, RNF06)">
+      <Cabecalho titulo="Integração com o estoque (API)" descricao="Consulta automática ao sistema de estoque do hospital por API REST (RF04, RNF06)">
         <form action={simularConsumoEstoque}><button className="btn-secundario">📉 Simular consumo no estoque</button></form>
         <form action={sincronizarAgora}>
           <input type="hidden" name="volta" value="/integracao" />
@@ -54,7 +54,7 @@ export default async function Integracao({ searchParams }: { searchParams: Promi
           <h2 className="mb-3">Dados recebidos da API agora</h2>
           {erro && <p className="text-sm text-red-600">{erro}</p>}
           <table className="tabela">
-            <thead><tr><th>SKU</th><th>Descrição</th><th>Saldo</th><th>Mínimo</th><th>Atualizado</th></tr></thead>
+            <thead><tr><th>SKU</th><th>Descrição</th><th>Setor</th><th>Saldo</th><th>Mínimo</th><th>Atualizado</th></tr></thead>
             <tbody>
               {itens.map((i) => {
                 const min = minimos.get(i.sku);
@@ -62,6 +62,7 @@ export default async function Integracao({ searchParams }: { searchParams: Promi
                   <tr key={i.sku}>
                     <td className="font-mono text-xs">{i.sku}</td>
                     <td>{i.descricao}</td>
+                    <td className="text-xs">{i.setor ?? "-"}</td>
                     <td className={min != null && i.quantidade < min ? "font-semibold text-red-600" : ""}>{i.quantidade} {i.unidade}</td>
                     <td>{min ?? <span className="text-xs text-slate-400">não cadastrado</span>}</td>
                     <td className="text-xs">{dataHora(i.atualizadoEm)}</td>
