@@ -53,6 +53,8 @@ export async function criarNecessidadeManual(fd: FormData) {
 export async function cancelarNecessidade(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
   const id = Number(fd.get("id"));
+  const necessidade = await prisma.necessidadeCompra.findUnique({ where: { id } });
+  if (!necessidade || !["ABERTA", "EM_COTACAO"].includes(necessidade.status)) falhar("/necessidades", "Esta necessidade não está mais em aberto");
   await prisma.necessidadeCompra.update({ where: { id }, data: { status: "CANCELADA" } });
   await prisma.cotacao.updateMany({ where: { necessidadeId: id, status: "ABERTA" }, data: { status: "CANCELADA", encerradaEm: new Date() } });
   await registrarLog(sessao.id, "NECESSIDADE_CANCELADA", "NecessidadeCompra", id);
@@ -62,10 +64,19 @@ export async function cancelarNecessidade(fd: FormData) {
 export async function gerarCotacao(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
   const necessidadeId = Number(fd.get("necessidadeId"));
-  const existente = await prisma.cotacao.findUnique({ where: { necessidadeId } });
-  if (existente) redirect(`/cotacoes/${existente.id}`);
+  const necessidade = await prisma.necessidadeCompra.findUnique({ where: { id: necessidadeId }, include: { cotacao: true } });
+  if (!necessidade) falhar("/necessidades", "Necessidade não encontrada");
+  const existente = necessidade.cotacao;
+  if (existente && existente.status !== "CANCELADA") redirect(`/cotacoes/${existente.id}`);
+  if (necessidade.status !== "ABERTA") falhar("/necessidades", "Esta necessidade não está mais em aberto");
   const cotacao = await prisma.$transaction(async (tx) => {
-    const c = await tx.cotacao.create({ data: { necessidadeId, criadoPorId: sessao.id } });
+    // Uma cotação cancelada é reaberta do zero (a necessidade só pode ter uma cotação)
+    const c = existente
+      ? await tx.cotacao.update({
+          where: { id: existente.id },
+          data: { status: "ABERTA", encerradaEm: null, criadoPorId: sessao.id, criadoEm: new Date(), propostas: { deleteMany: {} } },
+        })
+      : await tx.cotacao.create({ data: { necessidadeId, criadoPorId: sessao.id } });
     await tx.necessidadeCompra.update({ where: { id: necessidadeId }, data: { status: "EM_COTACAO" } });
     return c;
   });
@@ -217,15 +228,15 @@ export async function registrarRecebimento(fd: FormData) {
 
   await prisma.decisao.update({ where: { id: decisao.id }, data: { recebidoEm: new Date(), entregueNoPrazo: noPrazo, avaliacao } });
 
-  // Recalcula a nota do fornecedor: média entre a nota atual e as entregas avaliadas
+  // Recalcula a nota do fornecedor como média acumulada: a nota atual já representa a nota
+  // inicial do cadastro mais as entregas avaliadas antes desta
   const fornecedorId = decisao.proposta.fornecedorId;
-  const entregas = await prisma.decisao.findMany({
-    where: { proposta: { fornecedorId }, avaliacao: { not: null } },
-    select: { avaliacao: true, entregueNoPrazo: true },
+  const avaliacoesAnteriores = await prisma.decisao.count({
+    where: { proposta: { fornecedorId }, avaliacao: { not: null }, NOT: { id: decisao.id } },
   });
   const fornecedor = await prisma.fornecedor.findUniqueOrThrow({ where: { id: fornecedorId } });
-  const notas = entregas.map((e) => notaDaEntrega(e.avaliacao!, !!e.entregueNoPrazo));
-  const novaNota = Math.round(((fornecedor.notaHistorico + notas.reduce((a, b) => a + b, 0)) / (notas.length + 1)) * 100) / 100;
+  const pesoAtual = avaliacoesAnteriores + 1;
+  const novaNota = Math.round(((fornecedor.notaHistorico * pesoAtual + notaDaEntrega(avaliacao, noPrazo)) / (pesoAtual + 1)) * 100) / 100;
   await prisma.fornecedor.update({ where: { id: fornecedorId }, data: { notaHistorico: novaNota } });
 
   const produto = decisao.cotacao.necessidade.produto;

@@ -1,5 +1,5 @@
 import { obterPesos } from "@/lib/consultas";
-import { obterSessao, podeAprovar } from "@/lib/auth";
+import { exigirSessao, podeAprovar } from "@/lib/auth";
 import { Aviso, Cabecalho } from "@/components/ui";
 import { salvarPesos } from "@/acoes/cadastros";
 
@@ -12,7 +12,7 @@ const CRITERIOS = [
 
 export default async function Configuracoes({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
   const pesos = await obterPesos();
-  const sessao = (await obterSessao())!;
+  const sessao = await exigirSessao();
   const pode = podeAprovar(sessao.perfil);
   return (
     <div>

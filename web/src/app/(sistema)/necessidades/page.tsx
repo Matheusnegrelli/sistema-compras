@@ -60,7 +60,7 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
                   <td><Status valor={n.status} /></td>
                   <td className="text-xs">{dataHora(n.criadoEm)}<div className="text-slate-400">{n.origem === "AUTOMATICA" ? "via API" : "manual"}</div></td>
                   <td className="whitespace-nowrap">
-                    {n.cotacao ? (
+                    {n.cotacao && n.cotacao.status !== "CANCELADA" ? (
                       <Link className="link" href={`/cotacoes/${n.cotacao.id}`}>Ver cotação</Link>
                     ) : n.status === "ABERTA" ? (
                       <div className="flex gap-2">

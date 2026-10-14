@@ -18,7 +18,16 @@ export type ResultadoSincronizacao = {
  * Consulta a API de estoque, atualiza os saldos e gera uma necessidade de compra para
  * cada produto abaixo do mínimo que ainda não tenha necessidade em aberto.
  */
-export async function sincronizarEstoque(origem: "AUTOMATICA" | "MANUAL", usuarioId?: number): Promise<ResultadoSincronizacao> {
+// Fila que impede duas sincronizações ao mesmo tempo (rotina automática + botão), o que geraria alertas duplicados
+let fila: Promise<unknown> = Promise.resolve();
+
+export function sincronizarEstoque(origem: "AUTOMATICA" | "MANUAL", usuarioId?: number): Promise<ResultadoSincronizacao> {
+  const execucao = fila.then(() => executarSincronizacao(origem, usuarioId));
+  fila = execucao.catch(() => undefined);
+  return execucao;
+}
+
+async function executarSincronizacao(origem: "AUTOMATICA" | "MANUAL", usuarioId?: number): Promise<ResultadoSincronizacao> {
   const inicio = Date.now();
   try {
     const itens = await listarEstoque();

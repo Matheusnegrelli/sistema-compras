@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { carregarCotacao } from "@/lib/consultas";
-import { obterSessao, podeAprovar } from "@/lib/auth";
+import { exigirSessao, podeAprovar } from "@/lib/auth";
 import { Aviso, Cabecalho, Criticidade, Estrelas, Status, Vazio } from "@/components/ui";
 import { GraficoPontuacao } from "@/components/Graficos";
 import { dataHora, dias, moeda } from "@/lib/formato";
@@ -16,7 +16,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
   const dados = await carregarCotacao(Number(id));
   if (!dados) notFound();
   const { cotacao, pesos } = dados;
-  const sessao = (await obterSessao())!;
+  const sessao = await exigirSessao();
   const aberta = cotacao.status === "ABERTA";
   // Após a decisão, mostra o ranking registrado no momento da aprovação (rastreabilidade)
   const ranking = cotacao.decisao ? (cotacao.decisao.ranking as unknown as PropostaClassificada[]) : dados.ranking;

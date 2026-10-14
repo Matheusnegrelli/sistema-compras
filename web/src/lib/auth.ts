@@ -1,12 +1,22 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Perfil } from "@prisma/client";
+import { prisma } from "./db";
 import { COOKIE_SESSAO, lerToken, type Sessao } from "./token";
 
 export { COOKIE_SESSAO, criarToken, type Sessao } from "./token";
-export async function obterSessao() {
+
+/**
+ * Lê a sessão do cookie e confere o usuário no banco. Assim, um login antigo (por exemplo,
+ * depois de recarregar os dados com o seed) ou de um usuário desativado não é aceito.
+ */
+export async function obterSessao(): Promise<Sessao | null> {
   const jar = await cookies();
-  return lerToken(jar.get(COOKIE_SESSAO)?.value);
+  const token = await lerToken(jar.get(COOKIE_SESSAO)?.value);
+  if (!token) return null;
+  const usuario = await prisma.usuario.findUnique({ where: { id: token.id } });
+  if (!usuario || !usuario.ativo || usuario.email !== token.email) return null;
+  return { id: usuario.id, nome: usuario.nome, email: usuario.email, perfil: usuario.perfil };
 }
 
 /** Perfis que herdam as permissões de outro (o gestor também pode executar tarefas do comprador). */
