@@ -1,0 +1,178 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Perfil {
+  ADMIN
+  COMPRADOR
+  GESTOR
+}
+
+enum StatusNecessidade {
+  ABERTA
+  EM_COTACAO
+  ATENDIDA
+  CANCELADA
+}
+
+enum StatusCotacao {
+  ABERTA
+  APROVADA
+  CANCELADA
+}
+
+enum Origem {
+  AUTOMATICA
+  MANUAL
+  SIMULADA
+}
+
+model Usuario {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  email     String    @unique
+  senhaHash String
+  perfil    Perfil    @default(COMPRADOR)
+  ativo     Boolean   @default(true)
+  criadoEm  DateTime  @default(now())
+  cotacoes  Cotacao[]
+  decisoes  Decisao[]
+  logs      Log[]
+}
+
+model Produto {
+  id                  Int                 @id @default(autoincrement())
+  sku                 String              @unique
+  nome                String
+  unidade             String              @default("UN")
+  estoqueMinimo       Int                 @default(0)
+  estoqueAtual        Int                 @default(0)
+  /// Quantidade padrão a comprar quando o item fica abaixo do mínimo (opcional)
+  quantidadeReposicao Int?
+  precoReferencia     Float?
+  ultimaSincronizacao DateTime?
+  ativo               Boolean             @default(true)
+  criadoEm            DateTime            @default(now())
+  atualizadoEm        DateTime            @updatedAt
+  necessidades        NecessidadeCompra[]
+}
+
+model Fornecedor {
+  id            Int        @id @default(autoincrement())
+  nome          String
+  cnpj          String     @unique
+  email         String?
+  telefone      String?
+  contato       String?
+  /// Nota de histórico (0 a 5), recalculada a cada avaliação de entrega
+  notaHistorico Float      @default(3)
+  ativo         Boolean    @default(true)
+  criadoEm      DateTime   @default(now())
+  propostas     Proposta[]
+}
+
+model NecessidadeCompra {
+  id               Int               @id @default(autoincrement())
+  produtoId        Int
+  produto          Produto           @relation(fields: [produtoId], references: [id])
+  quantidade       Int
+  estoqueNoMomento Int
+  estoqueMinimo    Int
+  status           StatusNecessidade @default(ABERTA)
+  origem           Origem            @default(AUTOMATICA)
+  criadoEm         DateTime          @default(now())
+  cotacao          Cotacao?
+
+  @@index([status])
+}
+
+model Cotacao {
+  id            Int               @id @default(autoincrement())
+  necessidadeId Int               @unique
+  necessidade   NecessidadeCompra @relation(fields: [necessidadeId], references: [id])
+  status        StatusCotacao     @default(ABERTA)
+  criadoPorId   Int?
+  criadoPor     Usuario?          @relation(fields: [criadoPorId], references: [id])
+  criadoEm      DateTime          @default(now())
+  encerradaEm   DateTime?
+  propostas     Proposta[]
+  decisao       Decisao?
+}
+
+model Proposta {
+  id                   Int        @id @default(autoincrement())
+  cotacaoId            Int
+  cotacao              Cotacao    @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
+  fornecedorId         Int
+  fornecedor           Fornecedor @relation(fields: [fornecedorId], references: [id])
+  precoUnitario        Float
+  prazoEntregaDias     Int
+  quantidadeDisponivel Int
+  quantidadeMinima     Int        @default(1)
+  observacao           String?
+  origem               Origem     @default(MANUAL)
+  criadoEm             DateTime   @default(now())
+  decisoes             Decisao[]
+
+  @@unique([cotacaoId, fornecedorId])
+}
+
+model Decisao {
+  id                 Int       @id @default(autoincrement())
+  cotacaoId          Int       @unique
+  cotacao            Cotacao   @relation(fields: [cotacaoId], references: [id])
+  propostaId         Int
+  proposta           Proposta  @relation(fields: [propostaId], references: [id])
+  gestorId           Int
+  gestor             Usuario   @relation(fields: [gestorId], references: [id])
+  /// Pontuação e ranking calculados no momento da decisão (rastreabilidade)
+  pontuacao          Float
+  ranking            Json
+  pesos              Json
+  seguiuRecomendacao Boolean
+  justificativa      String?
+  decididoEm         DateTime  @default(now())
+  recebidoEm         DateTime?
+  entregueNoPrazo    Boolean?
+  avaliacao          Int?
+}
+
+model ConfiguracaoPesos {
+  id              Int      @id @default(1)
+  preco           Float    @default(40)
+  prazo           Float    @default(30)
+  disponibilidade Float    @default(20)
+  historico       Float    @default(10)
+  atualizadoEm    DateTime @updatedAt
+}
+
+model Sincronizacao {
+  id               Int      @id @default(autoincrement())
+  origem           Origem
+  iniciadoEm       DateTime @default(now())
+  duracaoMs        Int
+  sucesso          Boolean
+  itensLidos       Int      @default(0)
+  itensAtualizados Int      @default(0)
+  alertasGerados   Int      @default(0)
+  erro             String?
+}
+
+model Log {
+  id         Int      @id @default(autoincrement())
+  usuarioId  Int?
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
+  acao       String
+  entidade   String
+  entidadeId Int?
+  detalhes   String?
+  criadoEm   DateTime @default(now())
+
+  @@index([criadoEm])
+}

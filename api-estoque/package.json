@@ -1,0 +1,14 @@
+{
+  "name": "api-estoque-simulada",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API REST simulada de um sistema de estoque (ERP/almoxarifado) para integração com o sistema de compras.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "4.21.2"
+  }
+}
