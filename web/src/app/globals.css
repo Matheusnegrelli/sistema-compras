@@ -11,7 +11,7 @@
 @layer components {
   .card { @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm; }
   .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50; }
-  .btn-primario { @apply btn bg-marca-600 text-white hover:bg-marca-700; }
+  .btn-primario { @apply btn bg-marca-700 text-white hover:bg-marca-800; }
   .btn-secundario { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-100; }
   .btn-perigo { @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50; }
   .btn-sucesso { @apply btn bg-emerald-600 text-white hover:bg-emerald-700; }
@@ -21,7 +21,7 @@
   .tabela th { @apply border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500; }
   .tabela td { @apply border-b border-slate-100 px-3 py-2 align-middle; }
   .tabela tr:hover td { @apply bg-slate-50/60; }
-  .link { @apply font-medium text-marca-600 hover:underline; }
+  .link { @apply font-medium text-marca-700 hover:underline; }
 }
 
 @media print {

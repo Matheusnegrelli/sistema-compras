@@ -25,7 +25,7 @@ export async function Aviso({ searchParams }: { searchParams: Promise<{ erro?: s
 
 const CORES: Record<string, string> = {
   ABERTA: "bg-amber-100 text-amber-800",
-  EM_COTACAO: "bg-blue-100 text-blue-800",
+  EM_COTACAO: "bg-marca-100 text-marca-800",
   ATENDIDA: "bg-emerald-100 text-emerald-800",
   APROVADA: "bg-emerald-100 text-emerald-800",
   CANCELADA: "bg-slate-200 text-slate-600",

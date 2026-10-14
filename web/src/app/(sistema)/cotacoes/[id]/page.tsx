@@ -55,7 +55,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
             </div>
           </div>
           <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-medium text-marca-600">+ Registrar proposta manualmente</summary>
+            <summary className="cursor-pointer text-sm font-medium text-marca-700">+ Registrar proposta manualmente</summary>
             <form action={adicionarProposta} className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-6">
               <input type="hidden" name="cotacaoId" value={cotacao.id} />
               <div className="col-span-2">
@@ -115,7 +115,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                         <td>
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-16 overflow-hidden rounded-full bg-slate-200">
-                              <div className="h-full bg-marca-500" style={{ width: `${r.pontuacao}%` }} />
+                              <div className="h-full bg-marca-700" style={{ width: `${r.pontuacao}%` }} />
                             </div>
                             <span className="font-semibold">{r.pontuacao.toFixed(1)}</span>
                           </div>

@@ -2,7 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-const PALETA = ["#2563eb", "#0d9488", "#d97706", "#7c3aed", "#db2777", "#475569"];
+const PALETA = ["#154c47", "#3d9186", "#d4a24c", "#8fb9b3", "#a35a3e", "#5b6b6a"];
 
 export function GraficoEstoque({ dados }: { dados: { sku: string; atual: number; minimo: number }[] }) {
   return (
@@ -13,9 +13,9 @@ export function GraficoEstoque({ dados }: { dados: { sku: string; atual: number;
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar isAnimationActive={false} dataKey="atual" name="Estoque atual" fill="#2563eb" radius={[4, 4, 0, 0]}>
+        <Bar isAnimationActive={false} dataKey="atual" name="Estoque atual" fill="#154c47" radius={[4, 4, 0, 0]}>
           {dados.map((d) => (
-            <Cell key={d.sku} fill={d.atual < d.minimo ? "#dc2626" : "#2563eb"} />
+            <Cell key={d.sku} fill={d.atual < d.minimo ? "#dc2626" : "#154c47"} />
           ))}
         </Bar>
         <Bar isAnimationActive={false} dataKey="minimo" name="Estoque mínimo" fill="#94a3b8" radius={[4, 4, 0, 0]} />

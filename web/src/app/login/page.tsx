@@ -3,7 +3,7 @@ import { Aviso } from "@/components/ui";
 
 export default function Login({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-marca-900 to-marca-600 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-marca-900 to-marca-700 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
         <p className="text-2xl font-bold text-marca-700">CompraCerta</p>
         <p className="mb-6 text-sm text-slate-500">Sistema web de apoio à decisão na gestão de compras</p>

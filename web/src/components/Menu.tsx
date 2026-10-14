@@ -26,7 +26,7 @@ export function Menu({ admin, alertas }: { admin: boolean; alertas: number }) {
           <Link
             key={i.href}
             href={i.href}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${ativo ? "bg-white/15 font-medium text-white" : "text-blue-100 hover:bg-white/10"}`}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${ativo ? "bg-white/15 font-medium text-white" : "text-marca-100 hover:bg-white/10"}`}
           >
             <span aria-hidden>{i.icone}</span>
             <span className="flex-1">{i.rotulo}</span>
