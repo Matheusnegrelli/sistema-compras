@@ -3,6 +3,7 @@ import { Aviso } from "@/components/ui";
 import { dataHora, moeda } from "@/lib/formato";
 import { NOME_HOSPITAL } from "@/lib/solicitacoes";
 import { responderCotacao } from "@/acoes/fornecedor";
+import { IconeLogo } from "@/components/Logo";
 
 export const metadata = { title: "Responder cotação | CompraCerta Hospitalar" };
 
@@ -11,7 +12,7 @@ function Moldura({ children }: { children: React.ReactNode }) {
     <main className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-marca-700 text-xl text-white">🏥</div>
+          <IconeLogo className="h-10 w-10" />
           <div>
             <p className="font-semibold text-marca-800">{NOME_HOSPITAL}</p>
             <p className="text-xs text-slate-500">Portal do fornecedor · pedido de cotação</p>

@@ -1,11 +1,12 @@
 import { entrar } from "@/acoes/auth";
 import { Aviso } from "@/components/ui";
+import { Logo } from "@/components/Logo";
 
 export default function Login({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-marca-900 to-marca-700 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
-        <p className="text-2xl font-bold text-marca-700">CompraCerta <span className="font-normal text-marca-500">Hospitalar</span></p>
+        <Logo className="mb-4" />
         <p className="mb-6 text-sm text-slate-500">Apoio à decisão na gestão de compras hospitalares</p>
         <Aviso searchParams={searchParams} />
         <form action={entrar} className="space-y-4">

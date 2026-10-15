@@ -3,6 +3,7 @@ import { carregarCotacao } from "@/lib/consultas";
 import { dataHora, dias, moeda, ROTULO_STATUS } from "@/lib/formato";
 import type { PropostaClassificada } from "@/lib/pontuacao";
 import { BotaoImprimir } from "@/components/BotaoImprimir";
+import { Logo } from "@/components/Logo";
 
 export default async function Relatorio({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,7 +20,7 @@ export default async function Relatorio({ params }: { params: Promise<{ id: stri
     <div className="mx-auto max-w-4xl bg-white p-8 shadow-sm print:p-0 print:shadow-none">
       <div className="nao-imprimir mb-6 flex justify-end"><BotaoImprimir /></div>
       <div className="border-b border-slate-200 pb-4">
-        <p className="text-xs uppercase tracking-wide text-slate-500">CompraCerta Hospitalar · Relatório de apoio à decisão</p>
+        <div className="mb-3 flex items-center justify-between"><Logo /><p className="text-xs uppercase tracking-wide text-slate-500">Relatório de apoio à decisão</p></div>
         <h1 className="mt-1">Cotação #{cotacao.id}: {n.produto.nome}</h1>
         <p className="text-sm text-slate-500">Emitido em {dataHora(new Date())}</p>
       </div>
