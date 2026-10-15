@@ -15,6 +15,7 @@ export async function carregarCotacao(id: number) {
       propostas: { include: { fornecedor: true }, orderBy: { criadoEm: "asc" } },
       decisao: { include: { gestor: true, proposta: { include: { fornecedor: true } } } },
       criadoPor: true,
+      solicitacoes: { include: { fornecedor: true }, orderBy: { fornecedor: { nome: "asc" } } },
     },
   });
   if (!cotacao) return null;

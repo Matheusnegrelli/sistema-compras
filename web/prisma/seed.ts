@@ -20,6 +20,8 @@ async function main() {
     return;
   }
   await prisma.log.deleteMany();
+  await prisma.emailEnviado.deleteMany();
+  await prisma.solicitacaoCotacao.deleteMany();
   await prisma.decisao.deleteMany();
   await prisma.proposta.deleteMany();
   await prisma.cotacao.deleteMany();

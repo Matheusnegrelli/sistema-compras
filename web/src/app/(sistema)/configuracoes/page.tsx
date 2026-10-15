@@ -1,7 +1,8 @@
 import { obterPesos } from "@/lib/consultas";
 import { exigirSessao, podeAprovar } from "@/lib/auth";
 import { Aviso, Cabecalho } from "@/components/ui";
-import { salvarPesos } from "@/acoes/cadastros";
+import { salvarEnvio, salvarPesos } from "@/acoes/cadastros";
+import { obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 
 const CRITERIOS = [
   { campo: "preco", rotulo: "Preço", explicacao: "Menor preço da cotação ÷ preço da proposta" },
@@ -14,9 +15,10 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
   const pesos = await obterPesos();
   const sessao = await exigirSessao();
   const pode = podeAprovar(sessao.perfil);
+  const envio = await obterConfiguracaoEnvio();
   return (
     <div>
-      <Cabecalho titulo="Pesos do algoritmo de comparação" descricao="Pontuação ponderada das propostas (seção 4.5 do projeto)" />
+      <Cabecalho titulo="Configurações do algoritmo e da automação" descricao="Pontuação ponderada das propostas (seção 4.5 do projeto)" />
       <Aviso searchParams={searchParams} />
       <form action={salvarPesos} className="card max-w-3xl">
         <table className="tabela">
@@ -36,6 +38,22 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
           mas a compra só é efetivada após aprovação do gestor. A soma dos pesos deve ser 100%.
         </div>
         {pode ? <button className="btn-primario mt-4">Salvar pesos</button> : <p className="mt-4 text-sm text-slate-500">Somente gestores podem alterar os pesos.</p>}
+      </form>
+
+      <form action={salvarEnvio} className="card mt-6 max-w-3xl space-y-4">
+        <h2>Automação das cotações</h2>
+        <label className="flex items-start gap-3 text-sm">
+          <input type="checkbox" name="envioAutomatico" defaultChecked={envio.envioAutomatico} disabled={!pode} className="mt-1" />
+          <span>
+            <strong>Enviar cotação automaticamente</strong> quando um item ficar abaixo do estoque mínimo.
+            <span className="block text-slate-500">O sistema abre a cotação e envia por e-mail um link exclusivo para cada fornecedor ativo responder.</span>
+          </span>
+        </label>
+        <div className="max-w-xs">
+          <label className="rotulo">Prazo para os fornecedores responderem (horas)</label>
+          <input className="campo" type="number" name="prazoRespostaHoras" min={1} max={720} defaultValue={envio.prazoRespostaHoras} disabled={!pode} />
+        </div>
+        {pode && <button className="btn-primario">Salvar automação</button>}
       </form>
     </div>
   );

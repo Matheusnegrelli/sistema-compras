@@ -119,6 +119,19 @@ export async function salvarPesos(fd: FormData) {
   sucesso("/configuracoes", "Pesos atualizados");
 }
 
+export async function salvarEnvio(fd: FormData) {
+  const sessao = await exigirSessao("GESTOR");
+  const envioAutomatico = fd.get("envioAutomatico") === "on";
+  const prazoRespostaHoras = numero(fd, "prazoRespostaHoras");
+  if (!Number.isInteger(prazoRespostaHoras) || prazoRespostaHoras < 1 || prazoRespostaHoras > 720) {
+    falhar("/configuracoes", "O prazo de resposta deve ficar entre 1 e 720 horas");
+  }
+  const dados = { envioAutomatico, prazoRespostaHoras };
+  await prisma.configuracaoPesos.upsert({ where: { id: 1 }, create: { id: 1, ...dados }, update: dados });
+  await registrarLog(sessao.id, "ENVIO_CONFIGURADO", "ConfiguracaoPesos", 1, JSON.stringify(dados));
+  sucesso("/configuracoes", "Configuração de envio atualizada");
+}
+
 // ---------- Setores do hospital ----------
 export async function salvarSetor(fd: FormData) {
   const sessao = await exigirSessao("GESTOR");

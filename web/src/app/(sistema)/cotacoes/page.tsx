@@ -9,13 +9,13 @@ export default async function Cotacoes({ searchParams }: { searchParams: Promise
   const setorId = setorDoFiltro((await searchParams).setor);
   const cotacoes = await prisma.cotacao.findMany({
     where: setorId ? { necessidade: { produto: { setorId } } } : {},
-    include: { necessidade: { include: { produto: { include: { setor: true } } } }, _count: { select: { propostas: true } }, decisao: { include: { proposta: { include: { fornecedor: true } } } } },
+    include: { necessidade: { include: { produto: { include: { setor: true } } } }, _count: { select: { propostas: true, solicitacoes: true } }, decisao: { include: { proposta: { include: { fornecedor: true } } } } },
     orderBy: { criadoEm: "desc" },
     take: 100,
   });
   return (
     <div>
-      <Cabecalho titulo="Cotações" descricao="Registro, simulação e comparação de propostas de fornecedores (RF07, RF08, RF09)">
+      <Cabecalho titulo="Cotações" descricao="Pedidos enviados automaticamente aos fornecedores e comparação das propostas recebidas (RF07, RF08, RF09)">
         <FiltroSetor setores={await listarSetores()} />
       </Cabecalho>
       <Aviso searchParams={searchParams} />
@@ -24,7 +24,7 @@ export default async function Cotacoes({ searchParams }: { searchParams: Promise
           <div className="p-5"><Vazio>Nenhuma cotação ainda. Gere uma a partir de uma <Link className="link" href="/necessidades">necessidade de compra</Link>.</Vazio></div>
         ) : (
           <table className="tabela">
-            <thead><tr><th>#</th><th>Produto</th><th>Setor</th><th>Quantidade</th><th>Propostas</th><th>Status</th><th>Fornecedor escolhido</th><th>Criada em</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Produto</th><th>Setor</th><th>Quantidade</th><th>Respostas</th><th>Status</th><th>Fornecedor escolhido</th><th>Criada em</th><th></th></tr></thead>
             <tbody>
               {cotacoes.map((c) => (
                 <tr key={c.id}>
@@ -32,7 +32,7 @@ export default async function Cotacoes({ searchParams }: { searchParams: Promise
                   <td><span className="font-mono text-xs text-slate-500">{c.necessidade.produto.sku}</span> {c.necessidade.produto.nome} {c.necessidade.produto.criticidade === "ALTA" && <Criticidade valor="ALTA" />}</td>
                   <td className="text-sm">{c.necessidade.produto.setor?.nome ?? "-"}</td>
                   <td>{c.necessidade.quantidade} {c.necessidade.produto.unidade}</td>
-                  <td>{c._count.propostas}</td>
+                  <td>{c._count.solicitacoes > 0 ? `${c._count.propostas} de ${c._count.solicitacoes}` : c._count.propostas}</td>
                   <td><Status valor={c.status} /></td>
                   <td>{c.decisao?.proposta.fornecedor.nome ?? "-"}</td>
                   <td className="text-xs">{dataHora(c.criadoEm)}</td>

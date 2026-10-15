@@ -6,9 +6,11 @@ import { exigirSessao, podeAprovar } from "@/lib/auth";
 import { Aviso, Cabecalho, Criticidade, Estrelas, Status, Vazio } from "@/components/ui";
 import { GraficoPontuacao } from "@/components/Graficos";
 import { dataHora, dias, moeda } from "@/lib/formato";
+
+const ROTULO_ORIGEM: Record<string, string> = { FORNECEDOR: "via link", SIMULADA: "simulada", MANUAL: "lançada", AUTOMATICA: "" };
 import type { PropostaClassificada } from "@/lib/pontuacao";
 import {
-  adicionarProposta, aprovarProposta, cancelarCotacao, registrarRecebimento, removerProposta, simularPropostasCotacao,
+  adicionarProposta, aprovarProposta, cancelarCotacao, registrarRecebimento, reenviarCotacao, removerProposta, simularPropostasCotacao,
 } from "@/acoes/compras";
 
 export default async function Cotacao({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ erro?: string; ok?: string }> }) {
@@ -24,12 +26,14 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
   const { necessidade } = cotacao;
   const fornecedores = aberta ? await prisma.fornecedor.findMany({ where: { ativo: true }, orderBy: { nome: "asc" } }) : [];
   const melhor = ranking[0];
+  const origens = new Map(cotacao.propostas.map((p) => [p.id, ROTULO_ORIGEM[p.origem]]));
+  const respondidas = cotacao.solicitacoes.filter((s) => s.respondidoEm).length;
 
   return (
     <div>
       <Cabecalho
         titulo={`Cotação #${cotacao.id} · ${necessidade.produto.nome}`}
-        descricao={`${necessidade.produto.setor?.nome ?? "Sem setor"} · ${necessidade.quantidade} ${necessidade.produto.unidade} · estoque no alerta ${necessidade.estoqueNoMomento} (mínimo ${necessidade.estoqueMinimo}) · aberta por ${cotacao.criadoPor?.nome ?? "-"} em ${dataHora(cotacao.criadoEm)}`}
+        descricao={`${necessidade.produto.setor?.nome ?? "Sem setor"} · ${necessidade.quantidade} ${necessidade.produto.unidade} · estoque no alerta ${necessidade.estoqueNoMomento} (mínimo ${necessidade.estoqueMinimo}) · aberta por ${cotacao.criadoPor?.nome ?? "rotina automática"} em ${dataHora(cotacao.criadoEm)}`}
       >
         {necessidade.produto.criticidade === "ALTA" && <Criticidade valor="ALTA" />}
         <Status valor={cotacao.status} />
@@ -37,43 +41,74 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
       </Cabecalho>
       <Aviso searchParams={searchParams} />
 
-      {aberta && (
+      {(aberta || cotacao.solicitacoes.length > 0) && (
         <div className="card mb-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2>Solicitar propostas</h2>
-              <p className="text-sm text-slate-500">Registre as propostas recebidas ou simule o retorno dos fornecedores cadastrados.</p>
+              <h2>Pedido de cotação aos fornecedores</h2>
+              <p className="text-sm text-slate-500">
+                {cotacao.solicitacoes.length > 0
+                  ? <>Enviado por e-mail a {cotacao.solicitacoes.length} fornecedor(es) · {respondidas} responderam · prazo de resposta {dataHora(cotacao.prazoResposta)}</>
+                  : "Nenhum pedido enviado ainda."}
+              </p>
             </div>
-            <div className="flex gap-2">
-              <form action={simularPropostasCotacao}>
-                <input type="hidden" name="cotacaoId" value={cotacao.id} />
-                <button className="btn-primario">⚡ Simular propostas dos fornecedores</button>
-              </form>
-              <form action={cancelarCotacao}>
-                <input type="hidden" name="cotacaoId" value={cotacao.id} />
-                <button className="btn-perigo">Cancelar cotação</button>
-              </form>
-            </div>
-          </div>
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-medium text-marca-700">+ Registrar proposta manualmente</summary>
-            <form action={adicionarProposta} className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-6">
-              <input type="hidden" name="cotacaoId" value={cotacao.id} />
-              <div className="col-span-2">
-                <label className="rotulo">Fornecedor</label>
-                <select className="campo" name="fornecedorId" required>
-                  <option value="">Selecione</option>
-                  {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-                </select>
+            {aberta && (
+              <div className="flex flex-wrap gap-2">
+                <form action={reenviarCotacao}>
+                  <input type="hidden" name="cotacaoId" value={cotacao.id} />
+                  <button className="btn-secundario">✉️ Enviar a novos fornecedores</button>
+                </form>
+                <form action={simularPropostasCotacao}>
+                  <input type="hidden" name="cotacaoId" value={cotacao.id} />
+                  <button className="btn-primario">⚡ Simular respostas dos fornecedores</button>
+                </form>
+                <form action={cancelarCotacao}>
+                  <input type="hidden" name="cotacaoId" value={cotacao.id} />
+                  <button className="btn-perigo">Cancelar cotação</button>
+                </form>
               </div>
-              <div><label className="rotulo">Preço unit. (R$)</label><input className="campo" name="precoUnitario" type="number" step="0.01" min="0.01" required /></div>
-              <div><label className="rotulo">Prazo (dias)</label><input className="campo" name="prazoEntregaDias" type="number" min={0} required /></div>
-              <div><label className="rotulo">Qtd. disponível</label><input className="campo" name="quantidadeDisponivel" type="number" min={0} required defaultValue={necessidade.quantidade} /></div>
-              <div><label className="rotulo">Qtd. mínima</label><input className="campo" name="quantidadeMinima" type="number" min={1} defaultValue={1} /></div>
-              <div className="col-span-2 md:col-span-5"><label className="rotulo">Observação</label><input className="campo" name="observacao" /></div>
-              <div className="flex items-end"><button className="btn-secundario w-full">Salvar proposta</button></div>
-            </form>
-          </details>
+            )}
+          </div>
+          {cotacao.solicitacoes.length > 0 && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="tabela">
+                <thead><tr><th>Fornecedor</th><th>E-mail</th><th>Enviado</th><th>Abriu o link</th><th>Respondeu</th><th></th></tr></thead>
+                <tbody>
+                  {cotacao.solicitacoes.map((s) => (
+                    <tr key={s.id}>
+                      <td className="font-medium">{s.fornecedor.nome}</td>
+                      <td className="text-xs">{s.fornecedor.email}</td>
+                      <td className="text-xs">{dataHora(s.enviadoEm)}</td>
+                      <td className="text-xs">{s.visualizadoEm ? dataHora(s.visualizadoEm) : "-"}</td>
+                      <td>{s.respondidoEm ? <span className="text-xs font-medium text-emerald-700">✔ {dataHora(s.respondidoEm)}</span> : <span className="text-xs text-amber-700">Aguardando</span>}</td>
+                      <td><a className="link text-xs" href={`/responder/${s.token}`} target="_blank" rel="noreferrer" title="Abre a página que o fornecedor recebe por e-mail">abrir como fornecedor ↗</a></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {aberta && (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-medium text-marca-700">+ Registrar proposta recebida por telefone ou WhatsApp</summary>
+              <form action={adicionarProposta} className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-6">
+                <input type="hidden" name="cotacaoId" value={cotacao.id} />
+                <div className="col-span-2">
+                  <label className="rotulo">Fornecedor</label>
+                  <select className="campo" name="fornecedorId" required>
+                    <option value="">Selecione</option>
+                    {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                  </select>
+                </div>
+                <div><label className="rotulo">Preço unit. (R$)</label><input className="campo" name="precoUnitario" type="number" step="0.01" min="0.01" required /></div>
+                <div><label className="rotulo">Prazo (dias)</label><input className="campo" name="prazoEntregaDias" type="number" min={0} required /></div>
+                <div><label className="rotulo">Qtd. disponível</label><input className="campo" name="quantidadeDisponivel" type="number" min={0} required defaultValue={necessidade.quantidade} /></div>
+                <div><label className="rotulo">Qtd. mínima</label><input className="campo" name="quantidadeMinima" type="number" min={1} defaultValue={1} /></div>
+                <div className="col-span-2 md:col-span-5"><label className="rotulo">Observação</label><input className="campo" name="observacao" /></div>
+                <div className="flex items-end"><button className="btn-secundario w-full">Salvar proposta</button></div>
+              </form>
+            </details>
+          )}
         </div>
       )}
 
@@ -106,7 +141,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                     return (
                       <tr key={r.id} className={escolhida ? "bg-emerald-50" : ""}>
                         <td className="font-semibold">{r.posicao}º</td>
-                        <td className="font-medium">{r.fornecedor}{escolhida && " ✅"}</td>
+                        <td className="font-medium">{r.fornecedor}{escolhida && " ✅"}{origens.get(r.id) && <span className="ml-1 text-[10px] font-normal text-slate-400">{origens.get(r.id)}</span>}</td>
                         <td>{moeda(r.precoUnitario)}</td>
                         <td className="whitespace-nowrap">{dias(r.prazoEntregaDias)}</td>
                         <td>{r.quantidadeDisponivel}</td>

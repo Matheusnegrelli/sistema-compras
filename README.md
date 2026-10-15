@@ -32,7 +32,7 @@ O sistema foi aplicado ao contexto hospitalar e abrange todos os setores do hosp
 | RF04 | Consulta de estoque por API | `src/lib/estoque-api.ts`, tela Integração |
 | RF05 | Identificação automática abaixo do mínimo | `src/lib/sincronizacao.ts` + `src/instrumentation.ts` |
 | RF06 | Alerta de necessidade de compra | Necessidades de compra, badge no menu, dashboard |
-| RF07 | Registro ou simulação de cotações | Cotação: "Registrar proposta" e "Simular propostas" |
+| RF07 | Registro ou simulação de cotações | Envio automático do pedido por e-mail (`src/lib/solicitacoes.ts`), portal do fornecedor `/responder/[link]`, "Simular respostas" e registro manual |
 | RF08/RF09 | Comparar e classificar propostas | `src/lib/pontuacao.ts`, tabela e gráfico da cotação |
 | RF10 | Relatórios de apoio à decisão | Relatório da cotação (imprimir/PDF) e CSV do histórico |
 | RF11 | Dashboard gerencial | Página inicial |
@@ -97,13 +97,18 @@ npm run build && npm start    # ou: npm run dev
 1. Entrar como gestor. O dashboard mostra os produtos, os indicadores e o histórico já carregado.
 2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 12 itens abaixo do mínimo, de vários setores, com os críticos ao paciente no topo.
 3. Usar o filtro de setor (ex.: UTI Adulto) para mostrar a visão de um setor só.
-4. Em **Necessidades de compra**, clicar em **Gerar cotação** em um item.
-5. Clicar em **Simular propostas dos fornecedores** e mostrar o ranking: o menor preço nem sempre vence.
-6. Abrir o **Relatório de apoio à decisão** e salvar em PDF.
-7. Voltar e **Aprovar compra**. Tentar escolher outra proposta sem justificativa mostra o bloqueio.
-8. **Registrar recebimento**: a nota do fornecedor muda e o estoque recebe a entrada pela API.
-9. Mostrar **Histórico**, exportar o CSV e mostrar os **Logs**.
-10. Em **Integração (API)**, clicar em **Simular consumo** e sincronizar de novo para gerar novos alertas.
+4. Em **Cotações**, mostrar que cada alerta já virou cotação e foi enviado aos 6 fornecedores ("0 de 6" respostas). Em **E-mails enviados**, mostrar o pedido com o link exclusivo.
+5. Abrir uma cotação e clicar em **abrir como fornecedor** em uma linha: é a página que o fornecedor recebe, sem login. Preencher preço e prazo e enviar.
+6. Voltar à cotação: a resposta já entrou no ranking ("via link"). Clicar em **Simular respostas dos fornecedores** para os demais e mostrar que o menor preço nem sempre vence.
+7. Abrir o **Relatório de apoio à decisão** e salvar em PDF.
+8. Voltar e **Aprovar compra**. Tentar escolher outra proposta sem justificativa mostra o bloqueio.
+9. **Registrar recebimento**: a nota do fornecedor muda e o estoque recebe a entrada pela API.
+10. Mostrar **Histórico**, exportar o CSV e mostrar os **Logs**.
+11. Em **Integração (API)**, clicar em **Simular consumo** e sincronizar de novo para gerar novos alertas e novas cotações enviadas.
+
+### Envio real de e-mails (opcional)
+
+Sem configuração, os e-mails ficam registrados na tela **E-mails enviados** (modo demonstração). Para enviar de verdade, preencha no `web/.env` as variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_USUARIO`, `SMTP_SENHA` e `SMTP_REMETENTE` (no Gmail, use uma "senha de app"). Na apresentação, preencha também `EMAIL_TESTE` com o seu e-mail: todos os pedidos chegam nele, em vez de irem para os endereços fictícios dos fornecedores. O automático pode ser desligado em **Configurações**.
 
 ## Testes
 
@@ -127,4 +132,4 @@ web/src/app/(sistema)/           telas
 
 ## Limitações (seção 6.2 do projeto)
 
-O protótipo não realiza pagamentos, emissão de notas fiscais, integração financeira, controle contábil ou aprovação automática. O envio de solicitações aos fornecedores é simulado e os dados são fictícios.
+O protótipo não realiza pagamentos, emissão de notas fiscais, integração financeira, controle contábil ou aprovação automática. Os fornecedores e os dados são fictícios; o envio real de e-mail depende de um servidor SMTP configurado.

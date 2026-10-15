@@ -37,6 +37,14 @@ enum Origem {
   AUTOMATICA
   MANUAL
   SIMULADA
+  /// Proposta enviada pelo próprio fornecedor pelo link da cotação
+  FORNECEDOR
+}
+
+enum StatusEmail {
+  ENVIADO
+  DEMONSTRACAO
+  FALHOU
 }
 
 model Usuario {
@@ -86,17 +94,18 @@ model Produto {
 }
 
 model Fornecedor {
-  id            Int        @id @default(autoincrement())
+  id            Int                  @id @default(autoincrement())
   nome          String
-  cnpj          String     @unique
+  cnpj          String               @unique
   email         String?
   telefone      String?
   contato       String?
   /// Nota de histórico (0 a 5), recalculada a cada avaliação de entrega
-  notaHistorico Float      @default(3)
-  ativo         Boolean    @default(true)
-  criadoEm      DateTime   @default(now())
+  notaHistorico Float                @default(3)
+  ativo         Boolean              @default(true)
+  criadoEm      DateTime             @default(now())
   propostas     Proposta[]
+  solicitacoes  SolicitacaoCotacao[]
 }
 
 model NecessidadeCompra {
@@ -115,16 +124,50 @@ model NecessidadeCompra {
 }
 
 model Cotacao {
-  id            Int               @id @default(autoincrement())
-  necessidadeId Int               @unique
-  necessidade   NecessidadeCompra @relation(fields: [necessidadeId], references: [id])
-  status        StatusCotacao     @default(ABERTA)
+  id            Int                  @id @default(autoincrement())
+  necessidadeId Int                  @unique
+  necessidade   NecessidadeCompra    @relation(fields: [necessidadeId], references: [id])
+  status        StatusCotacao        @default(ABERTA)
   criadoPorId   Int?
-  criadoPor     Usuario?          @relation(fields: [criadoPorId], references: [id])
-  criadoEm      DateTime          @default(now())
+  criadoPor     Usuario?             @relation(fields: [criadoPorId], references: [id])
+  criadoEm      DateTime             @default(now())
+  /// Data limite para os fornecedores responderem pelo link
+  prazoResposta DateTime?
   encerradaEm   DateTime?
   propostas     Proposta[]
+  solicitacoes  SolicitacaoCotacao[]
   decisao       Decisao?
+}
+
+/// Pedido de cotação enviado a um fornecedor, com o link (token) para ele responder
+model SolicitacaoCotacao {
+  id            Int            @id @default(autoincrement())
+  cotacaoId     Int
+  cotacao       Cotacao        @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
+  fornecedorId  Int
+  fornecedor    Fornecedor     @relation(fields: [fornecedorId], references: [id])
+  token         String         @unique
+  enviadoEm     DateTime       @default(now())
+  visualizadoEm DateTime?
+  respondidoEm  DateTime?
+  emails        EmailEnviado[]
+
+  @@unique([cotacaoId, fornecedorId])
+}
+
+/// Caixa de saída: todo e-mail que o sistema envia (ou simula, sem servidor SMTP)
+model EmailEnviado {
+  id            Int                 @id @default(autoincrement())
+  solicitacaoId Int?
+  solicitacao   SolicitacaoCotacao? @relation(fields: [solicitacaoId], references: [id], onDelete: SetNull)
+  para          String
+  assunto       String
+  corpo         String
+  status        StatusEmail
+  erro          String?
+  enviadoEm     DateTime            @default(now())
+
+  @@index([enviadoEm])
 }
 
 model Proposta {
@@ -166,12 +209,16 @@ model Decisao {
 }
 
 model ConfiguracaoPesos {
-  id              Int      @id @default(1)
-  preco           Float    @default(40)
-  prazo           Float    @default(30)
-  disponibilidade Float    @default(20)
-  historico       Float    @default(10)
-  atualizadoEm    DateTime @updatedAt
+  id                 Int      @id @default(1)
+  preco              Float    @default(40)
+  prazo              Float    @default(30)
+  disponibilidade    Float    @default(20)
+  historico          Float    @default(10)
+  /// Gera a cotação e envia aos fornecedores assim que o alerta de estoque é criado
+  envioAutomatico    Boolean  @default(true)
+  /// Horas que os fornecedores têm para responder
+  prazoRespostaHoras Int      @default(48)
+  atualizadoEm       DateTime @updatedAt
 }
 
 model Sincronizacao {

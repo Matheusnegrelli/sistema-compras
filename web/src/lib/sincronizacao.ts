@@ -2,12 +2,14 @@ import { prisma } from "./db";
 import { listarEstoque } from "./estoque-api";
 import { registrarLog } from "./log";
 import { quantidadeSugerida } from "./pontuacao";
+import { abrirCotacao, obterConfiguracaoEnvio } from "./solicitacoes";
 
 export type ResultadoSincronizacao = {
   sucesso: boolean;
   itensLidos: number;
   itensAtualizados: number;
   alertasGerados: number;
+  cotacoesEnviadas: number;
   naoCadastrados: string[];
   duracaoMs: number;
   erro?: string;
@@ -36,6 +38,7 @@ async function executarSincronizacao(origem: "AUTOMATICA" | "MANUAL", usuarioId?
     const naoCadastrados: string[] = [];
     let itensAtualizados = 0;
     let alertasGerados = 0;
+    const novasNecessidades: number[] = [];
 
     for (const item of itens) {
       const produto = porSku.get(item.sku);
@@ -66,22 +69,36 @@ async function executarSincronizacao(origem: "AUTOMATICA" | "MANUAL", usuarioId?
           alertasGerados++;
           await registrarLog(usuarioId, "ALERTA_GERADO", "NecessidadeCompra", necessidade.id,
             `${produto.sku} com ${item.quantidade} ${produto.unidade} (mínimo ${produto.estoqueMinimo})`);
+          novasNecessidades.push(necessidade.id);
         }
       }
     }
 
-    const resultado = { sucesso: true, itensLidos: itens.length, itensAtualizados, alertasGerados, naoCadastrados, duracaoMs: Date.now() - inicio };
+    // Automação de cotações: cada alerta novo já vira cotação enviada aos fornecedores
+    let cotacoesEnviadas = 0;
+    if (novasNecessidades.length > 0 && (await obterConfiguracaoEnvio()).envioAutomatico) {
+      for (const id of novasNecessidades) {
+        try {
+          await abrirCotacao(id, null);
+          cotacoesEnviadas++;
+        } catch (e) {
+          console.error("Falha ao abrir cotação automática", e);
+        }
+      }
+    }
+
+    const resultado = { sucesso: true, itensLidos: itens.length, itensAtualizados, alertasGerados, cotacoesEnviadas, naoCadastrados, duracaoMs: Date.now() - inicio };
     await prisma.sincronizacao.create({
       data: { origem, duracaoMs: resultado.duracaoMs, sucesso: true, itensLidos: itens.length, itensAtualizados, alertasGerados },
     });
     await registrarLog(usuarioId, "SINCRONIZACAO", "Estoque", null,
-      `${origem}: ${itens.length} itens lidos, ${alertasGerados} alerta(s) gerado(s) em ${resultado.duracaoMs} ms`);
+      `${origem}: ${itens.length} itens lidos, ${alertasGerados} alerta(s) gerado(s), ${cotacoesEnviadas} cotação(ões) enviada(s) em ${resultado.duracaoMs} ms`);
     return resultado;
   } catch (e) {
     const erro = e instanceof Error ? e.message : String(e);
     const duracaoMs = Date.now() - inicio;
     await prisma.sincronizacao.create({ data: { origem, duracaoMs, sucesso: false, erro } });
     await registrarLog(usuarioId, "SINCRONIZACAO_FALHOU", "Estoque", null, erro);
-    return { sucesso: false, itensLidos: 0, itensAtualizados: 0, alertasGerados: 0, naoCadastrados: [], duracaoMs, erro };
+    return { sucesso: false, itensLidos: 0, itensAtualizados: 0, alertasGerados: 0, cotacoesEnviadas: 0, naoCadastrados: [], duracaoMs, erro };
   }
 }

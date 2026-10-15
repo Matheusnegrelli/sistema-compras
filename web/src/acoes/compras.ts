@@ -11,6 +11,7 @@ import { registrarEntrada, simularConsumo } from "@/lib/estoque-api";
 import { simularPropostas } from "@/lib/simulacao";
 import { classificarPropostas, notaDaEntrega } from "@/lib/pontuacao";
 import { obterPesos } from "@/lib/consultas";
+import { abrirCotacao, enviarSolicitacoes, obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 import { falhar, numero, sucesso, texto } from "./util";
 
 // ---------- Integração com o estoque ----------
@@ -20,7 +21,8 @@ export async function sincronizarAgora(fd: FormData) {
   const r = await sincronizarEstoque("MANUAL", sessao.id);
   revalidatePath("/", "layout");
   if (!r.sucesso) falhar(volta, `Falha ao consultar a API de estoque: ${r.erro}`);
-  sucesso(volta, `Estoque sincronizado: ${r.itensLidos} itens lidos, ${r.alertasGerados} novo(s) alerta(s) em ${r.duracaoMs} ms`);
+  const envio = r.cotacoesEnviadas > 0 ? `, ${r.cotacoesEnviadas} cotação(ões) enviada(s) aos fornecedores` : "";
+  sucesso(volta, `Estoque sincronizado: ${r.itensLidos} itens lidos, ${r.alertasGerados} novo(s) alerta(s)${envio} em ${r.duracaoMs} ms`);
 }
 
 export async function simularConsumoEstoque() {
@@ -47,6 +49,10 @@ export async function criarNecessidadeManual(fd: FormData) {
     data: { produtoId, quantidade, estoqueNoMomento: produto.estoqueAtual, estoqueMinimo: produto.estoqueMinimo, origem: "MANUAL" },
   });
   await registrarLog(sessao.id, "NECESSIDADE_MANUAL", "NecessidadeCompra", n.id, `${produto.sku} x${quantidade}`);
+  if ((await obterConfiguracaoEnvio()).envioAutomatico) {
+    const { cotacao, enviados } = await abrirCotacao(n.id, sessao.id);
+    sucesso(`/cotacoes/${cotacao.id}`, `Necessidade registrada, cotação aberta e enviada a ${enviados} fornecedor(es)`);
+  }
   sucesso("/necessidades", "Necessidade registrada");
 }
 
@@ -66,22 +72,20 @@ export async function gerarCotacao(fd: FormData) {
   const necessidadeId = Number(fd.get("necessidadeId"));
   const necessidade = await prisma.necessidadeCompra.findUnique({ where: { id: necessidadeId }, include: { cotacao: true } });
   if (!necessidade) falhar("/necessidades", "Necessidade não encontrada");
-  const existente = necessidade.cotacao;
-  if (existente && existente.status !== "CANCELADA") redirect(`/cotacoes/${existente.id}`);
+  if (necessidade.cotacao && necessidade.cotacao.status !== "CANCELADA") redirect(`/cotacoes/${necessidade.cotacao.id}`);
   if (necessidade.status !== "ABERTA") falhar("/necessidades", "Esta necessidade não está mais em aberto");
-  const cotacao = await prisma.$transaction(async (tx) => {
-    // Uma cotação cancelada é reaberta do zero (a necessidade só pode ter uma cotação)
-    const c = existente
-      ? await tx.cotacao.update({
-          where: { id: existente.id },
-          data: { status: "ABERTA", encerradaEm: null, criadoPorId: sessao.id, criadoEm: new Date(), propostas: { deleteMany: {} } },
-        })
-      : await tx.cotacao.create({ data: { necessidadeId, criadoPorId: sessao.id } });
-    await tx.necessidadeCompra.update({ where: { id: necessidadeId }, data: { status: "EM_COTACAO" } });
-    return c;
-  });
-  await registrarLog(sessao.id, "COTACAO_CRIADA", "Cotacao", cotacao.id, `Necessidade #${necessidadeId}`);
-  redirect(`/cotacoes/${cotacao.id}`);
+  const { cotacao, enviados } = await abrirCotacao(necessidadeId, sessao.id);
+  revalidatePath("/", "layout");
+  sucesso(`/cotacoes/${cotacao.id}`, `Cotação aberta e pedido enviado a ${enviados} fornecedor(es)`);
+}
+
+export async function reenviarCotacao(fd: FormData) {
+  const sessao = await exigirSessao("COMPRADOR");
+  const cotacaoId = Number(fd.get("cotacaoId"));
+  await cotacaoAberta(cotacaoId);
+  const enviados = await enviarSolicitacoes(cotacaoId, sessao.id);
+  if (enviados === 0) falhar(`/cotacoes/${cotacaoId}`, "Todos os fornecedores ativos com e-mail já receberam o pedido");
+  sucesso(`/cotacoes/${cotacaoId}`, `Pedido enviado a mais ${enviados} fornecedor(es)`);
 }
 
 // ---------- Propostas ----------
@@ -119,6 +123,7 @@ export async function adicionarProposta(fd: FormData) {
     create: { cotacaoId, fornecedorId, ...dados },
     update: dados,
   });
+  await prisma.solicitacaoCotacao.updateMany({ where: { cotacaoId, fornecedorId, respondidoEm: null }, data: { respondidoEm: new Date() } });
   await registrarLog(sessao.id, "PROPOSTA_REGISTRADA", "Proposta", p.id, `Cotação #${cotacaoId}, R$ ${preco}, ${prazo} dias`);
   sucesso(volta, "Proposta registrada");
 }
@@ -133,19 +138,26 @@ export async function removerProposta(fd: FormData) {
   sucesso(`/cotacoes/${p.cotacaoId}`, "Proposta removida");
 }
 
+/** Demonstração: simula os fornecedores convidados respondendo pelo link da cotação. */
 export async function simularPropostasCotacao(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
   const cotacaoId = Number(fd.get("cotacaoId"));
   const c = await cotacaoAberta(cotacaoId);
+  const pendentes = await prisma.solicitacaoCotacao.findMany({ where: { cotacaoId, respondidoEm: null }, include: { fornecedor: true } });
+  // Cotações antigas, sem pedido enviado, simulam todos os fornecedores ativos que ainda não responderam
   const jaResponderam = await prisma.proposta.findMany({ where: { cotacaoId }, select: { fornecedorId: true } });
-  const fornecedores = await prisma.fornecedor.findMany({
-    where: { ativo: true, id: { notIn: jaResponderam.map((p) => p.fornecedorId) } },
-  });
-  if (fornecedores.length === 0) falhar(`/cotacoes/${cotacaoId}`, "Todos os fornecedores ativos já enviaram proposta");
+  const fornecedores = (await prisma.solicitacaoCotacao.count({ where: { cotacaoId } })) > 0
+    ? pendentes.map((s) => s.fornecedor)
+    : await prisma.fornecedor.findMany({ where: { ativo: true, id: { notIn: jaResponderam.map((p) => p.fornecedorId) } } });
+  if (fornecedores.length === 0) falhar(`/cotacoes/${cotacaoId}`, "Todos os fornecedores convidados já responderam");
   const propostas = simularPropostas(fornecedores, c.necessidade.quantidade, c.necessidade.produto.precoReferencia ?? 50);
-  await prisma.proposta.createMany({ data: propostas.map((p) => ({ ...p, cotacaoId })) });
+  await prisma.proposta.createMany({ data: propostas.map((p) => ({ ...p, cotacaoId })), skipDuplicates: true });
+  await prisma.solicitacaoCotacao.updateMany({
+    where: { cotacaoId, fornecedorId: { in: propostas.map((p) => p.fornecedorId) } },
+    data: { respondidoEm: new Date(), visualizadoEm: new Date() },
+  });
   await registrarLog(sessao.id, "PROPOSTAS_SIMULADAS", "Cotacao", cotacaoId, `${propostas.length} fornecedores`);
-  sucesso(`/cotacoes/${cotacaoId}`, `${propostas.length} proposta(s) simulada(s) recebida(s)`);
+  sucesso(`/cotacoes/${cotacaoId}`, `${propostas.length} fornecedor(es) responderam (simulação)`);
 }
 
 // ---------- Decisão do gestor (a decisão final é sempre humana) ----------
