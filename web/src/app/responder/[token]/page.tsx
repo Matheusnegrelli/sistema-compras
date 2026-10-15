@@ -5,7 +5,7 @@ import { NOME_HOSPITAL } from "@/lib/solicitacoes";
 import { responderCotacao } from "@/acoes/fornecedor";
 import { IconeLogo } from "@/components/Logo";
 
-export const metadata = { title: "Responder cotação | CompraCerta Hospitalar" };
+export const metadata = { title: "Responder cotação | Provisa" };
 
 function Moldura({ children }: { children: React.ReactNode }) {
   return (

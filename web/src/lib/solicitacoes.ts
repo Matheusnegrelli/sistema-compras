@@ -3,8 +3,9 @@ import { prisma } from "./db";
 import { enviarEmail } from "./email";
 import { registrarLog } from "./log";
 import { dataHora } from "./formato";
+import { NOME_SISTEMA } from "./marca";
 
-export const NOME_HOSPITAL = process.env.NOME_HOSPITAL || "CompraCerta Hospitalar";
+export const NOME_HOSPITAL = process.env.NOME_HOSPITAL || "Hospital Regional";
 
 export function urlResposta(token: string) {
   const base = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -78,6 +79,7 @@ export async function enviarSolicitacoes(cotacaoId: number, usuarioId: number | 
       "Este link é exclusivo da sua empresa. Não é necessário criar conta.",
       "",
       `Setor de Compras · ${NOME_HOSPITAL}`,
+      `Enviado automaticamente pelo ${NOME_SISTEMA}`,
     ].join("\n");
     await enviarEmail({ para: f.email!, assunto: `Pedido de cotação #${cotacaoId} · ${produto.nome}`, corpo, solicitacaoId: s.id });
   }

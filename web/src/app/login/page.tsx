@@ -12,7 +12,7 @@ export default function Login({ searchParams }: { searchParams: Promise<{ erro?:
         <form action={entrar} className="space-y-4">
           <div>
             <label className="rotulo" htmlFor="email">E-mail</label>
-            <input className="campo" id="email" name="email" type="email" required defaultValue="comprador@compracerta.com" />
+            <input className="campo" id="email" name="email" type="email" required defaultValue="comprador@provisa.com" />
           </div>
           <div>
             <label className="rotulo" htmlFor="senha">Senha</label>
@@ -22,7 +22,7 @@ export default function Login({ searchParams }: { searchParams: Promise<{ erro?:
         </form>
         <div className="mt-6 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
           <p className="font-medium text-slate-600">Usuários de demonstração (senha 123456)</p>
-          <p>admin@compracerta.com · gestor@compracerta.com · comprador@compracerta.com</p>
+          <p>admin@provisa.com · gestor@provisa.com · comprador@provisa.com</p>
         </div>
       </div>
     </div>

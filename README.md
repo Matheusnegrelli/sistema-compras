@@ -1,4 +1,4 @@
-# CompraCerta Hospitalar: Sistema Web de Apoio à Decisão na Gestão de Compras
+# Provisa Compras Hospitalares: Sistema Web de Apoio à Decisão na Gestão de Compras
 
 Protótipo do TCC "Sistema Web de Apoio à Decisão na Gestão de Compras com Integração via API e Automação de Cotações" (Sistemas de Informação, UNESC).
 
@@ -8,7 +8,7 @@ O sistema foi aplicado ao contexto hospitalar e abrange todos os setores do hosp
 
 ```
 ┌──────────────────────┐   HTTP/JSON + x-api-key   ┌──────────────────────────┐
-│  API de Estoque      │ ◀──────────────────────── │  CompraCerta (Next.js)   │
+│  API de Estoque      │ ◀──────────────────────── │  Provisa (Next.js)       │
 │  (simulada, Express) │   GET  /api/v1/estoque    │  telas + regras + rotina │
 │  porta 4000          │   POST /movimentos        │  porta 3000              │
 └──────────────────────┘                           └────────────┬─────────────┘
@@ -88,9 +88,9 @@ npm run build && npm start    # ou: npm run dev
 
 | E-mail | Perfil |
 |---|---|
-| comprador@compracerta.com | Comprador (cotações, análise e seleção da proposta) |
-| gestor@compracerta.com | Gestor (tudo do comprador, mais pesos do algoritmo e automação) |
-| admin@compracerta.com | Administrador (tudo, inclusive usuários) |
+| comprador@provisa.com | Comprador (cotações, análise e seleção da proposta) |
+| gestor@provisa.com | Gestor (tudo do comprador, mais pesos do algoritmo e automação) |
+| admin@provisa.com | Administrador (tudo, inclusive usuários) |
 
 ## Roteiro de demonstração
 

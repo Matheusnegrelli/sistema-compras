@@ -33,9 +33,9 @@ async function main() {
   await prisma.usuario.deleteMany();
 
   const senhaHash = await bcrypt.hash("123456", 10);
-  const admin = await prisma.usuario.create({ data: { nome: "Administrador", email: "admin@compracerta.com", senhaHash, perfil: "ADMIN" } });
-  await prisma.usuario.create({ data: { nome: "Gestora de Suprimentos", email: "gestor@compracerta.com", senhaHash, perfil: "GESTOR" } });
-  const comprador = await prisma.usuario.create({ data: { nome: "Comprador", email: "comprador@compracerta.com", senhaHash, perfil: "COMPRADOR" } });
+  const admin = await prisma.usuario.create({ data: { nome: "Administrador", email: "admin@provisa.com", senhaHash, perfil: "ADMIN" } });
+  await prisma.usuario.create({ data: { nome: "Gestora de Suprimentos", email: "gestor@provisa.com", senhaHash, perfil: "GESTOR" } });
+  const comprador = await prisma.usuario.create({ data: { nome: "Comprador", email: "comprador@provisa.com", senhaHash, perfil: "COMPRADOR" } });
 
   await prisma.configuracaoPesos.upsert({ where: { id: 1 }, create: { id: 1, ...PESOS_PADRAO }, update: PESOS_PADRAO });
 
