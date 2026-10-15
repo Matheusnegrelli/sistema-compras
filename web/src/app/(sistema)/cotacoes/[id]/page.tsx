@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { carregarCotacao } from "@/lib/consultas";
-import { exigirSessao, podeAprovar } from "@/lib/auth";
+import { exigirSessao } from "@/lib/auth";
 import { Aviso, Cabecalho, Criticidade, Estrelas, Status, Vazio } from "@/components/ui";
 import { GraficoPontuacao } from "@/components/Graficos";
 import { dataHora, dias, moeda } from "@/lib/formato";
@@ -18,7 +18,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
   const dados = await carregarCotacao(Number(id));
   if (!dados) notFound();
   const { cotacao, pesos } = dados;
-  const sessao = await exigirSessao();
+  await exigirSessao();
   const aberta = cotacao.status === "ABERTA";
   // Após a decisão, mostra o ranking registrado no momento da aprovação (rastreabilidade)
   const ranking = cotacao.decisao ? (cotacao.decisao.ranking as unknown as PropostaClassificada[]) : dados.ranking;
@@ -127,7 +127,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
               <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
                 <strong>Recomendação do sistema:</strong> {melhor.fornecedor} com {melhor.pontuacao.toFixed(1)} pontos
                 ({moeda(melhor.precoUnitario)}/un, {dias(melhor.prazoEntregaDias)}, total {moeda(melhor.valorTotal)}).
-                A decisão final é do gestor.
+                A escolha final é do comprador.
               </div>
             )}
             <div className="overflow-x-auto">
@@ -179,8 +179,9 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
 
       {aberta && ranking.length > 0 && (
         <div className="card mb-6">
-          <h2 className="mb-1">Decisão do gestor</h2>
-          {podeAprovar(sessao.perfil) ? (
+          <h2 className="mb-1">Seleção da proposta pelo comprador</h2>
+          <p className="text-sm text-slate-500">Analise o comparativo e selecione a proposta. Você pode escolher outra que não a recomendada, informando o motivo.</p>
+          
             <form action={aprovarProposta} className="mt-3 space-y-3">
               <input type="hidden" name="cotacaoId" value={cotacao.id} />
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -195,11 +196,8 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                   <input className="campo" name="justificativa" />
                 </div>
               </div>
-              <button className="btn-sucesso">✔ Aprovar compra</button>
+              <button className="btn-sucesso">✔ Selecionar proposta e aprovar compra</button>
             </form>
-          ) : (
-            <p className="text-sm text-slate-500">Aguardando aprovação de um usuário com perfil Gestor.</p>
-          )}
         </div>
       )}
 
@@ -207,7 +205,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
         <div className="card mb-6 border-emerald-200">
           <h2 className="mb-2">Decisão registrada</h2>
           <p className="text-sm">
-            <strong>{cotacao.decisao.gestor.nome}</strong> aprovou a proposta de <strong>{cotacao.decisao.proposta.fornecedor.nome}</strong> em {dataHora(cotacao.decisao.decididoEm)}
+            <strong>{cotacao.decisao.gestor.nome}</strong> selecionou a proposta de <strong>{cotacao.decisao.proposta.fornecedor.nome}</strong> em {dataHora(cotacao.decisao.decididoEm)}
             {" "}({cotacao.decisao.pontuacao.toFixed(1)} pts, {cotacao.decisao.seguiuRecomendacao ? "seguindo a recomendação do sistema" : "diferente da recomendação"}).
           </p>
           {cotacao.decisao.justificativa && <p className="mt-1 text-sm text-slate-600">Justificativa: {cotacao.decisao.justificativa}</p>}

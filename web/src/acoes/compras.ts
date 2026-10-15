@@ -160,9 +160,9 @@ export async function simularPropostasCotacao(fd: FormData) {
   sucesso(`/cotacoes/${cotacaoId}`, `${propostas.length} fornecedor(es) responderam (simulação)`);
 }
 
-// ---------- Decisão do gestor (a decisão final é sempre humana) ----------
+// ---------- Decisão do comprador (o sistema recomenda; a escolha final é sempre humana) ----------
 export async function aprovarProposta(fd: FormData) {
-  const sessao = await exigirSessao("GESTOR");
+  const sessao = await exigirSessao("COMPRADOR");
   const cotacaoId = Number(fd.get("cotacaoId"));
   const propostaId = Number(fd.get("propostaId"));
   const justificativa = texto(fd, "justificativa");
@@ -208,7 +208,7 @@ export async function aprovarProposta(fd: FormData) {
   await registrarLog(sessao.id, "COMPRA_APROVADA", "Cotacao", cotacaoId,
     `${escolhida.fornecedor} (${escolhida.pontuacao} pts, ${seguiu ? "recomendada" : "diferente da recomendada"})`);
   revalidatePath("/", "layout");
-  sucesso(volta, "Compra aprovada e registrada no histórico");
+  sucesso(volta, "Proposta selecionada e registrada no histórico");
 }
 
 export async function cancelarCotacao(fd: FormData) {

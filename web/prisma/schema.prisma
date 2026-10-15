@@ -194,6 +194,7 @@ model Decisao {
   cotacao            Cotacao   @relation(fields: [cotacaoId], references: [id])
   propostaId         Int
   proposta           Proposta  @relation(fields: [propostaId], references: [id])
+  /// Usuário que selecionou a proposta (comprador)
   gestorId           Int
   gestor             Usuario   @relation(fields: [gestorId], references: [id])
   /// Pontuação e ranking calculados no momento da decisão (rastreabilidade)

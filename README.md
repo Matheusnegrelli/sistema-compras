@@ -2,7 +2,7 @@
 
 Protótipo do TCC "Sistema Web de Apoio à Decisão na Gestão de Compras com Integração via API e Automação de Cotações" (Sistemas de Informação, UNESC).
 
-O sistema foi aplicado ao contexto hospitalar e abrange todos os setores do hospital (Farmácia, UTI, Centro Cirúrgico, Pronto-Socorro, Internação, Laboratório, Nutrição, Higienização e Administrativo). Ele consulta o estoque por uma API, identifica automaticamente os produtos abaixo do estoque mínimo, gera necessidades de compra, registra ou simula propostas de fornecedores, classifica as propostas por pontuação ponderada e entrega ao gestor um relatório para que ele tome a decisão final.
+O sistema foi aplicado ao contexto hospitalar e abrange todos os setores do hospital (Farmácia, UTI, Centro Cirúrgico, Pronto-Socorro, Internação, Laboratório, Nutrição, Higienização e Administrativo). Ele consulta o estoque por uma API, identifica automaticamente os produtos abaixo do estoque mínimo, gera necessidades de compra, registra ou simula propostas de fornecedores, classifica as propostas por pontuação ponderada e entrega ao comprador o ranking e um relatório para que ele analise e selecione a proposta.
 
 ## Arquitetura
 
@@ -53,7 +53,7 @@ Cada critério vira uma nota de 0 a 1, normalizada pela melhor proposta da cota�
 | Disponibilidade | qtd. disponível ÷ qtd. necessária (máx. 1) | 20% |
 | Histórico do fornecedor | nota (0 a 5) ÷ 5 | 10% |
 
-**Pontuação = Σ nota × peso** (0 a 100). O gestor pode alterar os pesos em "Pesos do algoritmo". O sistema só recomenda: a compra é aprovada pelo gestor, que precisa justificar quando escolhe uma proposta diferente da 1ª colocada. No recebimento, a entrega é avaliada e a nota de histórico do fornecedor é recalculada (entrega atrasada perde 1 ponto), e a entrada do material é enviada para a API de estoque.
+**Pontuação = Σ nota × peso** (0 a 100). O gestor pode alterar os pesos em "Pesos do algoritmo". O sistema só recomenda: o comprador analisa e seleciona a proposta, e precisa justificar quando escolhe uma proposta diferente da 1ª colocada. No recebimento, a entrega é avaliada e a nota de histórico do fornecedor é recalculada (entrega atrasada perde 1 ponto), e a entrada do material é enviada para a API de estoque.
 
 ## Como rodar
 
@@ -88,20 +88,20 @@ npm run build && npm start    # ou: npm run dev
 
 | E-mail | Perfil |
 |---|---|
-| gestor@compracerta.com | Gestor (aprova compras e altera pesos) |
-| comprador@compracerta.com | Comprador (cadastros, cotações e propostas) |
+| comprador@compracerta.com | Comprador (cotações, análise e seleção da proposta) |
+| gestor@compracerta.com | Gestor (tudo do comprador, mais pesos do algoritmo e automação) |
 | admin@compracerta.com | Administrador (tudo, inclusive usuários) |
 
 ## Roteiro de demonstração
 
-1. Entrar como gestor. O dashboard mostra os produtos, os indicadores e o histórico já carregado.
+1. Entrar como comprador. O dashboard mostra os produtos, os indicadores e o histórico já carregado.
 2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 12 itens abaixo do mínimo, de vários setores, com os críticos ao paciente no topo.
 3. Usar o filtro de setor (ex.: UTI Adulto) para mostrar a visão de um setor só.
 4. Em **Cotações**, mostrar que cada alerta já virou cotação e foi enviado aos 6 fornecedores ("0 de 6" respostas). Em **E-mails enviados**, mostrar o pedido com o link exclusivo.
 5. Abrir uma cotação e clicar em **abrir como fornecedor** em uma linha: é a página que o fornecedor recebe, sem login. Preencher preço e prazo e enviar.
 6. Voltar à cotação: a resposta já entrou no ranking ("via link"). Clicar em **Simular respostas dos fornecedores** para os demais e mostrar que o menor preço nem sempre vence.
 7. Abrir o **Relatório de apoio à decisão** e salvar em PDF.
-8. Voltar e **Aprovar compra**. Tentar escolher outra proposta sem justificativa mostra o bloqueio.
+8. Voltar e **Selecionar proposta e aprovar compra**. Tentar escolher outra proposta sem justificativa mostra o bloqueio.
 9. **Registrar recebimento**: a nota do fornecedor muda e o estoque recebe a entrada pela API.
 10. Mostrar **Histórico**, exportar o CSV e mostrar os **Logs**.
 11. Em **Integração (API)**, clicar em **Simular consumo** e sincronizar de novo para gerar novos alertas e novas cotações enviadas.

@@ -1,5 +1,5 @@
 import { obterPesos } from "@/lib/consultas";
-import { exigirSessao, podeAprovar } from "@/lib/auth";
+import { exigirSessao, podeConfigurar } from "@/lib/auth";
 import { Aviso, Cabecalho } from "@/components/ui";
 import { salvarEnvio, salvarPesos } from "@/acoes/cadastros";
 import { obterConfiguracaoEnvio } from "@/lib/solicitacoes";
@@ -14,7 +14,7 @@ const CRITERIOS = [
 export default async function Configuracoes({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
   const pesos = await obterPesos();
   const sessao = await exigirSessao();
-  const pode = podeAprovar(sessao.perfil);
+  const pode = podeConfigurar(sessao.perfil);
   const envio = await obterConfiguracaoEnvio();
   return (
     <div>
@@ -35,7 +35,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
         </table>
         <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
           <strong>Pontuação final</strong> = Σ (nota do critério × peso), de 0 a 100. A proposta com maior pontuação é recomendada,
-          mas a compra só é efetivada após aprovação do gestor. A soma dos pesos deve ser 100%.
+          mas quem analisa e seleciona a proposta é o comprador. A soma dos pesos deve ser 100%.
         </div>
         {pode ? <button className="btn-primario mt-4">Salvar pesos</button> : <p className="mt-4 text-sm text-slate-500">Somente gestores podem alterar os pesos.</p>}
       </form>

@@ -74,7 +74,7 @@ export default async function Responder({ params, searchParams }: { params: Prom
           </div>
           <div><label className="rotulo">Observação (opcional)</label><input className="campo" name="observacao" defaultValue={proposta?.observacao ?? ""} /></div>
           <button className="btn-primario w-full sm:w-auto">{proposta ? "Atualizar proposta" : "Enviar proposta"}</button>
-          <p className="text-xs text-slate-500">As propostas são comparadas por preço, prazo, disponibilidade e histórico de entregas. A decisão final é do setor de compras do hospital.</p>
+          <p className="text-xs text-slate-500">As propostas são comparadas por preço, prazo, disponibilidade e histórico de entregas. A escolha final é do comprador do hospital.</p>
         </form>
       )}
     </Moldura>

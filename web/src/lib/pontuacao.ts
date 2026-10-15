@@ -8,7 +8,7 @@
  *  - Disponibilidade: quantidade disponível / quantidade necessária (limitado a 1)
  *  - Histórico:       nota do fornecedor (0 a 5) / 5
  *
- * O resultado apenas indica a proposta mais vantajosa; a decisão final é do gestor.
+ * O resultado apenas indica a proposta mais vantajosa; a escolha final é do comprador.
  */
 
 export type Pesos = { preco: number; prazo: number; disponibilidade: number; historico: number };

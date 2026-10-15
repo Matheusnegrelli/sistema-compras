@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   if (!(await obterSessao())) return new Response("Não autorizado", { status: 401 });
   const { decisoes } = await calcularIndicadores(setorDoFiltro(new URL(req.url).searchParams.get("setor") ?? undefined));
   const linhas = [
-    ["cotacao", "data_alerta", "data_decisao", "setor", "produto", "quantidade", "fornecedor", "preco_unitario", "prazo_dias", "valor_total", "pontuacao", "propostas_comparadas", "seguiu_recomendacao", "justificativa", "gestor_id", "entregue_no_prazo", "avaliacao"],
+    ["cotacao", "data_alerta", "data_decisao", "setor", "produto", "quantidade", "fornecedor", "preco_unitario", "prazo_dias", "valor_total", "pontuacao", "propostas_comparadas", "seguiu_recomendacao", "justificativa", "responsavel_id", "entregue_no_prazo", "avaliacao"],
   ];
   for (const d of decisoes) {
     const ranking = d.ranking as unknown as PropostaClassificada[];

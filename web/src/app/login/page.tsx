@@ -11,7 +11,7 @@ export default function Login({ searchParams }: { searchParams: Promise<{ erro?:
         <form action={entrar} className="space-y-4">
           <div>
             <label className="rotulo" htmlFor="email">E-mail</label>
-            <input className="campo" id="email" name="email" type="email" required defaultValue="gestor@compracerta.com" />
+            <input className="campo" id="email" name="email" type="email" required defaultValue="comprador@compracerta.com" />
           </div>
           <div>
             <label className="rotulo" htmlFor="senha">Senha</label>

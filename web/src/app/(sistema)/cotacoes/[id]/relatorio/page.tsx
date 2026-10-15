@@ -85,15 +85,15 @@ export default async function Relatorio({ params }: { params: Promise<{ id: stri
         <h2 className="mb-2">Decisão</h2>
         {cotacao.decisao ? (
           <p>
-            Aprovada por <strong>{cotacao.decisao.gestor.nome}</strong> em {dataHora(cotacao.decisao.decididoEm)}: proposta de{" "}
+            Selecionada por <strong>{cotacao.decisao.gestor.nome}</strong> em {dataHora(cotacao.decisao.decididoEm)}: proposta de{" "}
             <strong>{cotacao.decisao.proposta.fornecedor.nome}</strong> ({cotacao.decisao.seguiuRecomendacao ? "seguiu a recomendação" : "diferente da recomendação"}).
             {cotacao.decisao.justificativa && <> Justificativa: {cotacao.decisao.justificativa}.</>}
           </p>
         ) : (
-          <p className="text-slate-500">Aguardando decisão do gestor. Assinatura: ______________________________</p>
+          <p className="text-slate-500">Aguardando seleção do comprador. Assinatura: ______________________________</p>
         )}
       </section>
-      <p className="mt-8 text-xs text-slate-400">O sistema apenas indica a proposta mais adequada com base nos dados disponíveis; a decisão final é do gestor de compras.</p>
+      <p className="mt-8 text-xs text-slate-400">O sistema apenas indica a proposta mais adequada com base nos dados disponíveis; a escolha final é do comprador.</p>
     </div>
   );
 }

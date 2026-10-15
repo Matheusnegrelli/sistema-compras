@@ -32,6 +32,7 @@ export async function exigirSessao(...perfis: Perfil[]): Promise<Sessao> {
   return sessao;
 }
 
-export function podeAprovar(perfil: Perfil) {
+/** Pesos do algoritmo e automação: somente gestor ou administrador. */
+export function podeConfigurar(perfil: Perfil) {
   return perfil === "GESTOR" || perfil === "ADMIN";
 }

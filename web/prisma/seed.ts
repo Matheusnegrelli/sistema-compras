@@ -34,7 +34,7 @@ async function main() {
 
   const senhaHash = await bcrypt.hash("123456", 10);
   const admin = await prisma.usuario.create({ data: { nome: "Administrador", email: "admin@compracerta.com", senhaHash, perfil: "ADMIN" } });
-  const gestor = await prisma.usuario.create({ data: { nome: "Gestora de Suprimentos", email: "gestor@compracerta.com", senhaHash, perfil: "GESTOR" } });
+  await prisma.usuario.create({ data: { nome: "Gestora de Suprimentos", email: "gestor@compracerta.com", senhaHash, perfil: "GESTOR" } });
   const comprador = await prisma.usuario.create({ data: { nome: "Comprador", email: "comprador@compracerta.com", senhaHash, perfil: "COMPRADOR" } });
 
   await prisma.configuracaoPesos.upsert({ where: { id: 1 }, create: { id: 1, ...PESOS_PADRAO }, update: PESOS_PADRAO });
@@ -86,14 +86,14 @@ async function main() {
       h.qtd,
       PESOS_PADRAO,
     );
-    // Na cotação de fraldas o gestor escolheu a 2ª colocada, com justificativa
+    // Na cotação de fraldas o comprador escolheu a 2ª colocada, com justificativa
     const divergiu = h.sku === "INT-001";
     const escolhida = divergiu ? ranking[1] : ranking[0];
     await prisma.decisao.create({
       data: {
         cotacaoId: cotacao.id,
         propostaId: escolhida.id,
-        gestorId: gestor.id,
+        gestorId: comprador.id,
         pontuacao: escolhida.pontuacao,
         ranking: ranking as unknown as Prisma.InputJsonValue,
         pesos: PESOS_PADRAO,
@@ -103,7 +103,7 @@ async function main() {
         ...(h.dias > 5 ? { recebidoEm: diasAtras(h.dias - escolhida.prazoEntregaDias), entregueNoPrazo: true, avaliacao: 5 } : {}),
       },
     });
-    await prisma.log.create({ data: { usuarioId: gestor.id, acao: "COMPRA_APROVADA", entidade: "Cotacao", entidadeId: cotacao.id, detalhes: `${escolhida.fornecedor} (${escolhida.pontuacao} pts)`, criadoEm: diasAtras(h.dias, 1) } });
+    await prisma.log.create({ data: { usuarioId: comprador.id, acao: "COMPRA_APROVADA", entidade: "Cotacao", entidadeId: cotacao.id, detalhes: `${escolhida.fornecedor} (${escolhida.pontuacao} pts)`, criadoEm: diasAtras(h.dias, 1) } });
   }
 
   await prisma.log.create({ data: { usuarioId: admin.id, acao: "CARGA_INICIAL", entidade: "Sistema", detalhes: "Dados de demonstração carregados" } });
