@@ -95,7 +95,7 @@ npm run build && npm start    # ou: npm run dev
 ## Roteiro de demonstração
 
 1. Entrar como comprador. O dashboard mostra os produtos, os indicadores e o histórico já carregado.
-2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 12 itens abaixo do mínimo, de vários setores, com os críticos ao paciente no topo.
+2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 4 itens abaixo do mínimo, de vários setores, com os críticos ao paciente no topo.
 3. Usar o filtro de setor (ex.: UTI Adulto) para mostrar a visão de um setor só.
 4. Em **Cotações**, mostrar que cada alerta já virou cotação e foi enviado aos 6 fornecedores ("0 de 6" respostas). Em **E-mails enviados**, mostrar o pedido com o link exclusivo.
 5. Abrir uma cotação e clicar em **abrir como fornecedor** em uma linha: é a página que o fornecedor recebe, sem login. Preencher preço e prazo e enviar.

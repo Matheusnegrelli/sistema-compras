@@ -19,7 +19,7 @@ function agora() {
 }
 
 // Versão da massa de dados: quando muda, o arquivo salvo é recriado com os dados iniciais
-const VERSAO_DADOS = 3;
+const VERSAO_DADOS = 4;
 
 function carregar() {
   if (fs.existsSync(ARQUIVO)) {
