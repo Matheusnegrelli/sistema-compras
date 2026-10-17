@@ -119,11 +119,12 @@ No plano gratuito os serviços "dormem" após 15 min sem uso: abra o site uns 2 
 
 Sem configuração, os e-mails ficam registrados na tela **E-mails enviados** (modo demonstração). Para enviar de verdade, preencha no `web/.env` as variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_USUARIO`, `SMTP_SENHA` e `SMTP_REMETENTE` (no Gmail, use uma "senha de app"). Na apresentação, preencha também `EMAIL_TESTE` com o seu e-mail: todos os pedidos chegam nele, em vez de irem para os endereços fictícios dos fornecedores. O automático pode ser desligado em **Configurações**.
 
-**Envio real no site publicado (Render + Gmail):**
-1. Na conta Google, ative a verificação em duas etapas e crie uma **senha de app** em https://myaccount.google.com/apppasswords (16 letras).
-2. No Render, abra o serviço `provisa` > **Environment** > **Add Environment Variable** e cadastre:
-   `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USUARIO=seu e-mail do Gmail`, `SMTP_SENHA=a senha de app`, `SMTP_REMETENTE=Provisa <seu e-mail do Gmail>` e `EMAIL_TESTE=o e-mail onde quer receber tudo`.
-3. Clique em **Save, rebuild and deploy**. Os próximos e-mails aparecem como "Enviado" na tela **E-mails enviados** e chegam na caixa do `EMAIL_TESTE`.
+**Envio real no site publicado (Render + Resend):** o plano grátis do Render bloqueia as portas de SMTP (25, 465 e 587), então o Gmail por SMTP não funciona lá. Use o Resend, que envia por HTTPS:
+1. Crie uma conta gratuita em https://resend.com com o mesmo e-mail que vai em `EMAIL_TESTE` e gere uma chave em **API Keys**.
+2. No Render, abra o serviço `provisa` > **Environment** e cadastre `RESEND_API_KEY` com a chave e `EMAIL_TESTE` com o seu e-mail. Pode apagar as variáveis `SMTP_*`.
+3. Salve. Os e-mails saem pelo remetente de testes do Resend (`onboarding@resend.dev`), que só entrega no e-mail dono da conta; por isso o `EMAIL_TESTE` precisa ser esse e-mail.
+
+Os e-mails são enviados em segundo plano: a tela responde na hora e o status na tela **E-mails enviados** muda de "Enviando…" para "Enviado" (ou "Falhou", com o motivo).
 
 ## Testes
 

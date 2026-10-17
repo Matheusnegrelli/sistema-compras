@@ -26,6 +26,7 @@ export const ROTULO_STATUS: Record<string, string> = {
   SIMULADA: "Simulada",
   FORNECEDOR: "Pelo fornecedor",
   ENVIADO: "Enviado",
+  ENVIANDO: "Enviando…",
   DEMONSTRACAO: "Demonstração",
   FALHOU: "Falhou",
   ADMIN: "Administrador",

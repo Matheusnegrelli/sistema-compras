@@ -42,6 +42,7 @@ enum Origem {
 }
 
 enum StatusEmail {
+  ENVIANDO
   ENVIADO
   DEMONSTRACAO
   FALHOU

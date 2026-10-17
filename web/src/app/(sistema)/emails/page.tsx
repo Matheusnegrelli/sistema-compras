@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { emailReal } from "@/lib/email";
+import { provedorEmail } from "@/lib/email";
 import { Cabecalho, Status, Vazio } from "@/components/ui";
 import { dataHora } from "@/lib/formato";
 import { emailHtml } from "@/lib/email-html";
@@ -10,10 +10,16 @@ export default async function Emails() {
   return (
     <div>
       <Cabecalho titulo="E-mails enviados" descricao="Tudo o que o sistema envia por e-mail: pedidos de cotação, pedidos de compra, dados para pagamento e confirmações aos fornecedores" />
-      {!emailReal() && (
+      {provedorEmail() && (
+        <p className="mb-4 text-sm text-slate-500">
+          Envio real ativo pelo {provedorEmail() === "RESEND" ? "Resend (API)" : "servidor SMTP"}{process.env.EMAIL_TESTE ? ` · todos os e-mails são desviados para ${process.env.EMAIL_TESTE}` : ""}.
+          Os e-mails saem em segundo plano: atualize a página para ver o status mudar de &quot;Enviando…&quot; para &quot;Enviado&quot;.
+        </p>
+      )}
+      {!provedorEmail() && (
         <div className="mb-5 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Modo demonstração: nenhum servidor de e-mail (SMTP) está configurado, então as mensagens ficam registradas aqui sem sair do sistema.
-          Para enviar de verdade, preencha as variáveis SMTP no arquivo <code>.env</code>. Abra um e-mail para ver como ele chega ao destinatário.
+          Modo demonstração: nenhum serviço de e-mail (Resend ou SMTP) está configurado, então as mensagens ficam registradas aqui sem sair do sistema.
+          Para enviar de verdade, configure <code>RESEND_API_KEY</code> ou as variáveis SMTP. Abra um e-mail para ver como ele chega ao destinatário.
         </div>
       )}
       {emails.length === 0 ? (
