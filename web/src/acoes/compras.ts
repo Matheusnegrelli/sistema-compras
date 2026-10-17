@@ -11,6 +11,7 @@ import { registrarEntrada, simularConsumo } from "@/lib/estoque-api";
 import { simularPropostas } from "@/lib/simulacao";
 import { classificarPropostas, notaDaEntrega, quantidadeCompra } from "@/lib/pontuacao";
 import { obterPesos, paraAlgoritmo } from "@/lib/consultas";
+import { enviarPedidoCompra } from "@/lib/pedido";
 import { lerItensDoFormulario, registrarSemItens, salvarProposta } from "@/lib/propostas";
 import { abrirCotacao, enviarSolicitacoes, obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 import { falhar, numero, sucesso, texto } from "./util";
@@ -216,9 +217,21 @@ export async function aprovarProposta(fd: FormData) {
   ]);
   await registrarLog(sessao.id, "COMPRA_APROVADA", "Cotacao", cotacaoId,
     `${escolhida.fornecedor} (${escolhida.pontuacao} pts, ${seguiu ? "recomendada" : "diferente da recomendada"})`);
+  // O pedido de compra vai por e-mail ao fornecedor escolhido; os demais recebem o aviso de encerramento
+  const pedidoPara = await enviarPedidoCompra(cotacaoId);
   revalidatePath("/", "layout");
+  const pedido = pedidoPara ? ` Pedido de compra enviado por e-mail para ${pedidoPara}.` : " O fornecedor não tem e-mail cadastrado: envie o pedido de compra impresso.";
   const aviso = naoAtendidos.length > 0 ? ` ${naoAtendidos.length} item(ns) não cotado(s) por este fornecedor voltaram para Necessidades.` : "";
-  sucesso(volta, `Proposta selecionada e registrada no histórico.${aviso}`);
+  sucesso(volta, `Proposta selecionada e registrada no histórico.${pedido}${aviso}`);
+}
+
+export async function reenviarPedido(fd: FormData) {
+  const sessao = await exigirSessao("COMPRADOR");
+  const cotacaoId = Number(fd.get("cotacaoId"));
+  const para = await enviarPedidoCompra(cotacaoId, false);
+  if (!para) falhar(`/cotacoes/${cotacaoId}`, "O fornecedor escolhido não tem e-mail cadastrado");
+  await registrarLog(sessao.id, "PEDIDO_REENVIADO", "Cotacao", cotacaoId, para);
+  sucesso(`/cotacoes/${cotacaoId}`, `Pedido de compra reenviado para ${para}`);
 }
 
 export async function cancelarCotacao(fd: FormData) {

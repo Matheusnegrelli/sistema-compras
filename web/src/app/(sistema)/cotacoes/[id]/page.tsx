@@ -10,7 +10,7 @@ import { dataHora, dias, moeda } from "@/lib/formato";
 const ROTULO_ORIGEM: Record<string, string> = { FORNECEDOR: "via link", SIMULADA: "simulada", MANUAL: "lançada", AUTOMATICA: "" };
 import type { PropostaClassificada } from "@/lib/pontuacao";
 import {
-  adicionarProposta, aprovarProposta, cancelarCotacao, registrarRecebimento, reenviarCotacao, removerProposta, simularPropostasCotacao,
+  adicionarProposta, aprovarProposta, cancelarCotacao, registrarRecebimento, reenviarPedido, reenviarCotacao, removerProposta, simularPropostasCotacao,
 } from "@/acoes/compras";
 
 export default async function Cotacao({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ erro?: string; ok?: string }> }) {
@@ -267,6 +267,17 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
             {" "}({cotacao.decisao.pontuacao.toFixed(1)} pts, {cotacao.decisao.seguiuRecomendacao ? "seguindo a recomendação do sistema" : "diferente da recomendação"}).
           </p>
           {cotacao.decisao.justificativa && <p className="mt-1 text-sm text-slate-600">Justificativa: {cotacao.decisao.justificativa}</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+            <span>
+              {cotacao.decisao.pedidoEnviadoEm
+                ? <>📧 Pedido de compra nº {cotacao.id} enviado a <strong>{cotacao.decisao.proposta.fornecedor.email}</strong> em {dataHora(cotacao.decisao.pedidoEnviadoEm)}</>
+                : <>Pedido de compra nº {cotacao.id} não enviado: fornecedor sem e-mail cadastrado</>}
+            </span>
+            <Link href={`/cotacoes/${cotacao.id}/pedido`} className="link">📄 Ver / imprimir pedido</Link>
+            {cotacao.decisao.proposta.fornecedor.email && !cotacao.decisao.recebidoEm && (
+              <form action={reenviarPedido}><input type="hidden" name="cotacaoId" value={cotacao.id} /><button className="link">Reenviar</button></form>
+            )}
+          </div>
           {cotacao.decisao.recebidoEm ? (
             <p className="mt-3 text-sm text-emerald-700">
               Recebido em {dataHora(cotacao.decisao.recebidoEm)} · {cotacao.decisao.entregueNoPrazo ? "no prazo" : "com atraso"} · avaliação {cotacao.decisao.avaliacao}/5

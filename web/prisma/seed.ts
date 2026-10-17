@@ -114,6 +114,7 @@ async function main() {
         seguiuRecomendacao: !divergiu,
         justificativa: divergiu ? "Produto já homologado pela Comissão de Padronização do hospital" : null,
         decididoEm: diasAtras(h.dias, 1),
+        pedidoEnviadoEm: diasAtras(h.dias, 1),
         ...(h.dias > 5 ? { recebidoEm: diasAtras(h.dias - escolhida.prazoEntregaDias), entregueNoPrazo: true, avaliacao: 5 } : {}),
       },
     });

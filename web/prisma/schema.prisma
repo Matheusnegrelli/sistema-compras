@@ -222,6 +222,8 @@ model Decisao {
   seguiuRecomendacao Boolean
   justificativa      String?
   decididoEm         DateTime  @default(now())
+  /// Quando o pedido de compra foi enviado por e-mail ao fornecedor escolhido
+  pedidoEnviadoEm    DateTime?
   recebidoEm         DateTime?
   entregueNoPrazo    Boolean?
   avaliacao          Int?

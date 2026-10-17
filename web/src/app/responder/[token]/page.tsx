@@ -30,7 +30,7 @@ export default async function Responder({ params, searchParams }: { params: Prom
     where: { token: decodeURIComponent(token) },
     include: {
       fornecedor: true,
-      cotacao: { include: { itens: { where: { status: "EM_COTACAO" }, include: { produto: { include: { setor: true } } }, orderBy: { id: "asc" } } } },
+      cotacao: { include: { decisao: { select: { propostaId: true } }, itens: { where: { status: "EM_COTACAO" }, include: { produto: { include: { setor: true } } }, orderBy: { id: "asc" } } } },
     },
   });
   if (!s) {
@@ -59,7 +59,9 @@ export default async function Responder({ params, searchParams }: { params: Prom
       {!podeResponder ? (
         <div className="card text-sm text-slate-600">
           {cotacao.status !== "ABERTA" ? "Esta cotação já foi encerrada pelo hospital." : "O prazo para responder esta cotação terminou."}
-          {proposta && <> Sua proposta foi registrada com entrega em {proposta.prazoEntregaDias} dia(s).</>}
+          {proposta && cotacao.decisao?.propostaId === proposta.id
+            ? <> <strong className="text-emerald-700">Sua proposta foi selecionada.</strong> O pedido de compra nº {cotacao.id} foi enviado para o seu e-mail.</>
+            : proposta && <> Sua proposta foi registrada com entrega em {proposta.prazoEntregaDias} dia(s).</>}
           {s.semItens && <> Você respondeu que não possui nenhum dos itens.</>}
         </div>
       ) : (
