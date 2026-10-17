@@ -23,7 +23,7 @@ export function Logo({ escuro = false, className = "" }: { escuro?: boolean; cla
         <p className={`text-[22px] font-bold tracking-tight ${escuro ? "text-white" : "text-marca-700"}`}>
           {NOME_SISTEMA}<span className="text-[#D4A24C]">.</span>
         </p>
-        <p className={`mt-1 text-[9.5px] font-semibold uppercase tracking-[0.2em] ${escuro ? "text-marca-200" : "text-slate-500"}`}>{SUBTITULO_SISTEMA}</p>
+        <p className={`mt-1 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.14em] ${escuro ? "text-marca-200" : "text-slate-500"}`}>{SUBTITULO_SISTEMA}</p>
       </div>
     </div>
   );

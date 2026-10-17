@@ -14,7 +14,7 @@ export function urlResposta(token: string) {
 
 export async function obterConfiguracaoEnvio() {
   const c = await prisma.configuracaoPesos.findUnique({ where: { id: 1 } });
-  return { envioAutomatico: c?.envioAutomatico ?? true, prazoRespostaHoras: c?.prazoRespostaHoras ?? 48 };
+  return { envioAutomatico: c?.envioAutomatico ?? false, prazoRespostaHoras: c?.prazoRespostaHoras ?? 48 };
 }
 
 /**

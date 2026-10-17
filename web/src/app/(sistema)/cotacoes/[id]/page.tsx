@@ -60,7 +60,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                 </form>
                 <form action={simularPropostasCotacao}>
                   <input type="hidden" name="cotacaoId" value={cotacao.id} />
-                  <button className="btn-primario">⚡ Simular respostas dos fornecedores</button>
+                  <button className="btn-primario">⚡ Simular propostas dos fornecedores</button>
                 </form>
                 <form action={cancelarCotacao}>
                   <input type="hidden" name="cotacaoId" value={cotacao.id} />

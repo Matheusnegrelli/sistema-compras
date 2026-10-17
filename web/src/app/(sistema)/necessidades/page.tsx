@@ -51,7 +51,17 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
             <tbody>
               {necessidades.map((n) => (
                 <tr key={n.id}>
-                  <td className="min-w-[220px]"><span className="font-mono text-xs text-slate-500">{n.produto.sku}</span> {n.produto.nome}</td>
+                  <td className="min-w-[220px]">
+                    <span className="font-mono text-xs text-slate-500">{n.produto.sku}</span>{" "}
+                    {n.cotacao && n.cotacao.status !== "CANCELADA" ? (
+                      <Link className="link font-medium" href={`/cotacoes/${n.cotacao.id}`} title="Abrir a cotação">{n.produto.nome}</Link>
+                    ) : n.status === "ABERTA" ? (
+                      <form action={gerarCotacao} className="inline">
+                        <input type="hidden" name="necessidadeId" value={n.id} />
+                        <button className="link text-left font-medium" title="Gerar a cotação deste item">{n.produto.nome}</button>
+                      </form>
+                    ) : n.produto.nome}
+                  </td>
                   <td className="text-sm">{n.produto.setor?.sigla ?? "-"}</td>
                   <td><Criticidade valor={n.produto.criticidade} /></td>
                   <td className="font-semibold text-red-600">{n.estoqueNoMomento}</td>

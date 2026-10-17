@@ -157,7 +157,7 @@ export async function simularPropostasCotacao(fd: FormData) {
     data: { respondidoEm: new Date(), visualizadoEm: new Date() },
   });
   await registrarLog(sessao.id, "PROPOSTAS_SIMULADAS", "Cotacao", cotacaoId, `${propostas.length} fornecedores`);
-  sucesso(`/cotacoes/${cotacaoId}`, `${propostas.length} fornecedor(es) responderam (simulação)`);
+  sucesso(`/cotacoes/${cotacaoId}`, `${propostas.length} proposta(s) simulada(s) recebida(s) dos fornecedores`);
 }
 
 // ---------- Decisão do comprador (o sistema recomenda; a escolha final é sempre humana) ----------

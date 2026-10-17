@@ -37,7 +37,8 @@ async function main() {
   await prisma.usuario.create({ data: { nome: "Gestora de Suprimentos", email: "gestor@provisa.com", senhaHash, perfil: "GESTOR" } });
   const comprador = await prisma.usuario.create({ data: { nome: "Comprador", email: "comprador@provisa.com", senhaHash, perfil: "COMPRADOR" } });
 
-  await prisma.configuracaoPesos.upsert({ where: { id: 1 }, create: { id: 1, ...PESOS_PADRAO }, update: PESOS_PADRAO });
+  // Na demonstração o comprador gera cada cotação clicando no item (o envio automático pode ser ligado em Configurações)
+  await prisma.configuracaoPesos.upsert({ where: { id: 1 }, create: { id: 1, ...PESOS_PADRAO, envioAutomatico: false }, update: { ...PESOS_PADRAO, envioAutomatico: false } });
 
   const setorIds = new Map<string, number>();
   for (const s of setores) setorIds.set(s.sigla, (await prisma.setor.create({ data: s })).id);
