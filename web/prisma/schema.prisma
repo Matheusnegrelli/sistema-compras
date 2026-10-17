@@ -102,6 +102,8 @@ model Fornecedor {
   contato       String?
   /// Nota de histórico (0 a 5), recalculada a cada avaliação de entrega
   notaHistorico Float                @default(3)
+  /// Dados para pagamento (chave PIX, banco/agência/conta) enviados ao comprador
+  dadosPagamento String?
   ativo         Boolean              @default(true)
   criadoEm      DateTime             @default(now())
   propostas     Proposta[]
@@ -188,6 +190,8 @@ model Proposta {
   fornecedorId     Int
   fornecedor       Fornecedor     @relation(fields: [fornecedorId], references: [id])
   prazoEntregaDias Int
+  /// Forma de pagamento oferecida (PIX, TRANSFERENCIA, BOLETO_28, BOLETO_30_60)
+  formaPagamento   String         @default("BOLETO_28")
   observacao       String?
   origem           Origem         @default(MANUAL)
   criadoEm         DateTime       @default(now())
@@ -229,6 +233,10 @@ model Decisao {
   decididoEm         DateTime  @default(now())
   /// Quando o pedido de compra foi enviado por e-mail ao fornecedor escolhido
   pedidoEnviadoEm    DateTime?
+  /// Pagamento ao fornecedor: a entrega só segue depois de confirmado
+  formaPagamento     String?
+  pagoEm             DateTime?
+  pagamentoReferencia String?
   recebidoEm         DateTime?
   entregueNoPrazo    Boolean?
   avaliacao          Int?

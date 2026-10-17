@@ -4,6 +4,7 @@ import { IconeLogo } from "@/components/Logo";
 import { dataHora, moeda } from "@/lib/formato";
 import { NOME_HOSPITAL } from "@/lib/solicitacoes";
 import { responderCotacao } from "@/acoes/fornecedor";
+import { FORMAS_PAGAMENTO } from "@/lib/pagamento";
 
 export const metadata = { title: "Responder cotação | Provisa" };
 
@@ -92,8 +93,14 @@ export default async function Responder({ params, searchParams }: { params: Prom
               </tbody>
             </table>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div><label className="rotulo">Prazo de entrega de todo o pedido (dias)</label><input className="campo" name="prazoEntregaDias" type="number" min={0} required defaultValue={proposta?.prazoEntregaDias} /></div>
+            <div><label className="rotulo">Forma de pagamento</label>
+              <select className="campo" name="formaPagamento" required defaultValue={proposta?.formaPagamento ?? ""}>
+                <option value="">Selecione</option>
+                {FORMAS_PAGAMENTO.map((f) => <option key={f.valor} value={f.valor}>{f.rotulo}</option>)}
+              </select>
+            </div>
             <div><label className="rotulo">Observação (opcional)</label><input className="campo" name="observacao" defaultValue={proposta?.observacao ?? ""} /></div>
           </div>
           {proposta && (

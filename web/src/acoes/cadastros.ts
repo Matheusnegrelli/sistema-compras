@@ -67,6 +67,7 @@ export async function salvarFornecedor(fd: FormData) {
     email: texto(fd, "email") || null,
     telefone: texto(fd, "telefone") || null,
     contato: texto(fd, "contato") || null,
+    dadosPagamento: texto(fd, "dadosPagamento") || null,
     notaHistorico: nota,
     ativo: fd.get("ativo") === "on",
   };

@@ -11,7 +11,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
   const { id } = await params;
   const pedido = await carregarPedido(Number(id));
   if (!pedido) notFound();
-  const { cotacao, decisao, fornecedor, itens, total, prazo, entregaPrevista } = pedido;
+  const { cotacao, decisao, fornecedor, itens, total, prazo, entregaPrevista, forma, venceEm } = pedido;
 
   return (
     <div className="mx-auto max-w-4xl bg-white p-8 shadow-sm print:p-0 print:shadow-none">
@@ -60,7 +60,8 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
 
       <section className="mt-6 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
         <p><strong>Prazo de entrega:</strong> {prazo} dia(s), previsão {data(entregaPrevista)}</p>
-        <p><strong>Situação:</strong> {decisao.recebidoEm ? `recebido em ${dataHora(decisao.recebidoEm)}` : "aguardando entrega"}</p>
+        <p><strong>Forma de pagamento:</strong> {forma.rotulo}, vencimento {data(venceEm)}</p>
+        <p><strong>Situação:</strong> {decisao.recebidoEm ? `recebido em ${dataHora(decisao.recebidoEm)}` : decisao.pagoEm ? `pago em ${dataHora(decisao.pagoEm)}, aguardando entrega` : "aguardando pagamento"}</p>
       </section>
 
       <p className="mt-10 border-t border-slate-200 pt-3 text-xs text-slate-500">

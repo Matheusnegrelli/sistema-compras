@@ -32,6 +32,11 @@ export function FormFornecedor({ fornecedor }: { fornecedor?: Fornecedor }) {
           <input className="campo" name="notaHistorico" type="number" step="0.1" min={0} max={5} defaultValue={fornecedor?.notaHistorico ?? 3} />
           <p className="mt-1 text-xs text-slate-500">Atualizada automaticamente a cada entrega avaliada.</p>
         </div>
+        <div className="sm:col-span-2">
+          <label className="rotulo">Dados para pagamento</label>
+          <textarea className="campo" name="dadosPagamento" rows={2} defaultValue={fornecedor?.dadosPagamento ?? ""} placeholder="Ex.: PIX (CNPJ) 12.345.678/0001-01 · Banco do Brasil, ag. 1234, cc 56789-0" />
+          <p className="mt-1 text-xs text-slate-500">Vão no e-mail que o comprador recebe ao aprovar a compra.</p>
+        </div>
         <label className="flex items-center gap-2 self-center text-sm">
           <input type="checkbox" name="ativo" defaultChecked={fornecedor?.ativo ?? true} /> Ativo (participa das cotações)
         </label>

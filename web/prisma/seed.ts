@@ -80,7 +80,7 @@ async function main() {
     for (const [fi, fatorPreco, prazo, fatorDisp] of h.propostas) {
       criadas.push(await prisma.proposta.create({
         data: {
-          cotacaoId: cotacao.id, fornecedorId: forns[fi].id, prazoEntregaDias: prazo, origem: "SIMULADA", criadoEm: diasAtras(h.dias, 2),
+          cotacaoId: cotacao.id, fornecedorId: forns[fi].id, prazoEntregaDias: prazo, formaPagamento: ["PIX", "BOLETO_28", "TRANSFERENCIA", "BOLETO_30_60"][fi % 4], origem: "SIMULADA", criadoEm: diasAtras(h.dias, 2),
           itens: {
             create: itens.map(({ produto, necessidade }) => ({
               necessidadeId: necessidade.id,
@@ -115,6 +115,8 @@ async function main() {
         justificativa: divergiu ? "Produto já homologado pela Comissão de Padronização do hospital" : null,
         decididoEm: diasAtras(h.dias, 1),
         pedidoEnviadoEm: diasAtras(h.dias, 1),
+        formaPagamento: criadas.find((p) => p.id === escolhida.id)?.formaPagamento,
+        pagoEm: diasAtras(h.dias, 1),
         ...(h.dias > 5 ? { recebidoEm: diasAtras(h.dias - escolhida.prazoEntregaDias), entregueNoPrazo: true, avaliacao: 5 } : {}),
       },
     });

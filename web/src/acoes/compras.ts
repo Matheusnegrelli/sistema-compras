@@ -11,7 +11,8 @@ import { registrarEntrada, simularConsumo } from "@/lib/estoque-api";
 import { simularPropostas } from "@/lib/simulacao";
 import { classificarPropostas, notaDaEntrega, quantidadeCompra } from "@/lib/pontuacao";
 import { obterPesos, paraAlgoritmo } from "@/lib/consultas";
-import { enviarPedidoCompra } from "@/lib/pedido";
+import { enviarPedidoCompra, enviarResumoAoComprador, avisarPagamentoAoFornecedor } from "@/lib/pedido";
+import { formaValida } from "@/lib/pagamento";
 import { lerItensDoFormulario, registrarSemItens, salvarProposta } from "@/lib/propostas";
 import { abrirCotacao, enviarSolicitacoes, obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 import { falhar, numero, sucesso, texto } from "./util";
@@ -155,7 +156,9 @@ export async function adicionarProposta(fd: FormData) {
     sucesso(volta, "Registrado: o fornecedor não possui nenhum dos itens");
   }
   if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Prazo de entrega inválido");
-  const p = await salvarProposta({ cotacaoId, fornecedorId, prazoEntregaDias: prazo, observacao: texto(fd, "observacao") || null, origem: "MANUAL", itens: lido.itens });
+  const forma = texto(fd, "formaPagamento");
+  if (!formaValida(forma)) falhar(volta, "Selecione a forma de pagamento");
+  const p = await salvarProposta({ cotacaoId, fornecedorId, prazoEntregaDias: prazo, formaPagamento: forma, observacao: texto(fd, "observacao") || null, origem: "MANUAL", itens: lido.itens });
   await prisma.solicitacaoCotacao.updateMany({ where: { cotacaoId, fornecedorId, respondidoEm: null }, data: { respondidoEm: new Date() } });
   await registrarLog(sessao.id, "PROPOSTA_REGISTRADA", "Proposta", p.id, `Cotação #${cotacaoId}, ${lido.itens.length} item(ns), ${prazo} dias`);
   sucesso(volta, "Proposta registrada");
@@ -241,6 +244,7 @@ export async function aprovarProposta(fd: FormData) {
         pesos,
         seguiuRecomendacao: seguiu,
         justificativa: justificativa || null,
+        formaPagamento: propostas.find((p) => p.id === propostaId)?.formaPagamento,
       },
     }),
     prisma.cotacao.update({ where: { id: cotacaoId }, data: { status: "APROVADA", encerradaEm: new Date() } }),
@@ -251,8 +255,11 @@ export async function aprovarProposta(fd: FormData) {
     `${escolhida.fornecedor} (${escolhida.pontuacao} pts, ${seguiu ? "recomendada" : "diferente da recomendada"})`);
   // O pedido de compra vai por e-mail ao fornecedor escolhido; os demais recebem o aviso de encerramento
   const pedidoPara = await enviarPedidoCompra(cotacaoId);
+  // O comprador recebe o resumo da compra com valor e forma de pagamento para efetuar o pagamento
+  const resumoPara = await enviarResumoAoComprador(cotacaoId, sessao.id);
   revalidatePath("/", "layout");
-  const pedido = pedidoPara ? ` Pedido de compra enviado por e-mail para ${pedidoPara}.` : " O fornecedor não tem e-mail cadastrado: envie o pedido de compra impresso.";
+  const pedido = (pedidoPara ? ` Pedido de compra enviado por e-mail para ${pedidoPara}.` : " O fornecedor não tem e-mail cadastrado: envie o pedido de compra impresso.")
+    + (resumoPara ? ` Dados para pagamento enviados para ${resumoPara}.` : "");
   const aviso = naoAtendidos.length > 0 ? ` ${naoAtendidos.length} item(ns) não cotado(s) por este fornecedor voltaram para Necessidades.` : "";
   sucesso(volta, `Proposta selecionada e registrada no histórico.${pedido}${aviso}`);
 }
@@ -264,6 +271,22 @@ export async function reenviarPedido(fd: FormData) {
   if (!para) falhar(`/cotacoes/${cotacaoId}`, "O fornecedor escolhido não tem e-mail cadastrado");
   await registrarLog(sessao.id, "PEDIDO_REENVIADO", "Cotacao", cotacaoId, para);
   sucesso(`/cotacoes/${cotacaoId}`, `Pedido de compra reenviado para ${para}`);
+}
+
+/** O comprador confirma que pagou o fornecedor; o fornecedor é avisado para seguir com a entrega. */
+export async function registrarPagamento(fd: FormData) {
+  const sessao = await exigirSessao("COMPRADOR");
+  const cotacaoId = Number(fd.get("cotacaoId"));
+  const volta = `/cotacoes/${cotacaoId}`;
+  const decisao = await prisma.decisao.findUnique({ where: { cotacaoId } });
+  if (!decisao) falhar(volta, "Esta cotação ainda não foi aprovada");
+  if (decisao.pagoEm) falhar(volta, "Pagamento já registrado");
+  const referencia = texto(fd, "referencia") || null;
+  await prisma.decisao.update({ where: { id: decisao.id }, data: { pagoEm: new Date(), pagamentoReferencia: referencia } });
+  const para = await avisarPagamentoAoFornecedor(cotacaoId);
+  await registrarLog(sessao.id, "PAGAMENTO_REGISTRADO", "Cotacao", cotacaoId, referencia ?? undefined);
+  revalidatePath("/", "layout");
+  sucesso(volta, `Pagamento registrado.${para ? ` O fornecedor foi avisado em ${para} para seguir com a entrega.` : ""}`);
 }
 
 export async function cancelarCotacao(fd: FormData) {
@@ -292,6 +315,7 @@ export async function registrarRecebimento(fd: FormData) {
   });
   if (!decisao) falhar(volta, "Esta cotação ainda não foi aprovada");
   if (decisao.recebidoEm) falhar(volta, "Recebimento já registrado");
+  if (!decisao.pagoEm) falhar(volta, "Registre o pagamento ao fornecedor antes do recebimento");
 
   await prisma.decisao.update({ where: { id: decisao.id }, data: { recebidoEm: new Date(), entregueNoPrazo: noPrazo, avaliacao } });
 

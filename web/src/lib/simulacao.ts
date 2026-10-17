@@ -1,4 +1,5 @@
 import type { Fornecedor } from "@prisma/client";
+import { FORMAS_PAGAMENTO } from "./pagamento";
 
 type ItemSimulado = { necessidadeId: number; quantidade: number; precoReferencia: number };
 
@@ -18,6 +19,7 @@ export function simularPropostas(fornecedores: Fornecedor[], itens: ItemSimulado
     return {
       fornecedorId: f.id,
       prazoEntregaDias: prazo,
+      formaPagamento: FORMAS_PAGAMENTO[Math.floor(Math.random() * FORMAS_PAGAMENTO.length)].valor as string,
       origem: "SIMULADA" as const,
       observacao: "Proposta gerada pela simulação de cotação",
       itens: cotados.map((i) => {

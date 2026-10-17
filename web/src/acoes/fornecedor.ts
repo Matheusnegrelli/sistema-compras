@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { registrarLog } from "@/lib/log";
 import { lerItensDoFormulario, registrarSemItens, salvarProposta } from "@/lib/propostas";
+import { formaValida } from "@/lib/pagamento";
 import { falhar, numero, sucesso, texto } from "./util";
 
 /** Resposta do fornecedor pelo link exclusivo do pedido de cotação (não exige login). */
@@ -25,8 +26,10 @@ export async function responderCotacao(fd: FormData) {
   }
   const prazo = numero(fd, "prazoEntregaDias");
   if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Informe o prazo de entrega em dias");
+  const forma = texto(fd, "formaPagamento");
+  if (!formaValida(forma)) falhar(volta, "Selecione a forma de pagamento");
   const p = await salvarProposta({
-    cotacaoId: s.cotacaoId, fornecedorId: s.fornecedorId, prazoEntregaDias: prazo,
+    cotacaoId: s.cotacaoId, fornecedorId: s.fornecedorId, prazoEntregaDias: prazo, formaPagamento: forma,
     observacao: texto(fd, "observacao") || null, origem: "FORNECEDOR", itens: lido.itens,
   });
   const primeira = !s.respondidoEm;

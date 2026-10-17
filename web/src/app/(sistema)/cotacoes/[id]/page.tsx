@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { FORMAS_PAGAMENTO, formaPagamento, vencimento } from "@/lib/pagamento";
 import { carregarCotacao } from "@/lib/consultas";
 import { exigirSessao } from "@/lib/auth";
 import { Aviso, Cabecalho, Criticidade, Estrelas, Status, Vazio } from "@/components/ui";
 import { GraficoPontuacao } from "@/components/Graficos";
-import { dataHora, dias, moeda } from "@/lib/formato";
+import { data, dataHora, dias, moeda } from "@/lib/formato";
 
 const ROTULO_ORIGEM: Record<string, string> = { FORNECEDOR: "via link", SIMULADA: "simulada", MANUAL: "lançada", AUTOMATICA: "" };
 import type { PropostaClassificada } from "@/lib/pontuacao";
 import {
-  adicionarProposta, aprovarProposta, cancelarCotacao, registrarRecebimento, reenviarPedido, alterarQuantidades, reenviarCotacao, removerProposta, simularPropostasCotacao,
+  adicionarProposta, aprovarProposta, cancelarCotacao, registrarPagamento, registrarRecebimento, reenviarPedido, alterarQuantidades, reenviarCotacao, removerProposta, simularPropostasCotacao,
 } from "@/acoes/compras";
 
 export default async function Cotacao({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ erro?: string; ok?: string }> }) {
@@ -29,6 +30,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
   const fornecedores = aberta ? await prisma.fornecedor.findMany({ where: { ativo: true }, orderBy: { nome: "asc" } }) : [];
   const melhor = ranking[0];
   const origens = new Map(cotacao.propostas.map((p) => [p.id, ROTULO_ORIGEM[p.origem]]));
+  const pagamentos = new Map(cotacao.propostas.map((p) => [p.id, p.formaPagamento]));
   const respondidas = cotacao.solicitacoes.filter((s) => s.respondidoEm).length;
   const semItens = cotacao.solicitacoes.filter((s) => s.semItens).length;
 
@@ -138,7 +140,14 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                     </select>
                   </div>
                   <div><label className="rotulo">Prazo de entrega (dias)</label><input className="campo" name="prazoEntregaDias" type="number" min={0} required /></div>
-                  <div><label className="rotulo">Observação</label><input className="campo" name="observacao" /></div>
+                  <div>
+                    <label className="rotulo">Forma de pagamento</label>
+                    <select className="campo" name="formaPagamento" required defaultValue="">
+                      <option value="">Selecione</option>
+                      {FORMAS_PAGAMENTO.map((f) => <option key={f.valor} value={f.valor}>{f.rotulo}</option>)}
+                    </select>
+                  </div>
+                  <div className="md:col-span-4"><label className="rotulo">Observação</label><input className="campo" name="observacao" /></div>
                 </div>
                 <table className="tabela">
                   <thead><tr><th>Item</th><th>Preço unit. (R$)</th><th>Qtd. disponível</th><th>Qtd. mínima</th><th>Não tenho</th></tr></thead>
@@ -185,7 +194,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
             <div className="overflow-x-auto">
               <table className="tabela">
                 <thead>
-                  <tr><th>#</th><th>Fornecedor</th><th>Itens cotados</th><th>Prazo</th><th>Histórico</th><th>Valor total</th><th>Pontuação</th><th>Alertas</th><th></th></tr>
+                  <tr><th>#</th><th>Fornecedor</th><th>Itens cotados</th><th>Prazo</th><th>Pagamento</th><th>Histórico</th><th>Valor total</th><th>Pontuação</th><th>Alertas</th><th></th></tr>
                 </thead>
                 <tbody>
                   {ranking.map((r) => {
@@ -196,6 +205,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                         <td className="font-medium">{r.fornecedor}{escolhida && " ✅"}{origens.get(r.id) && <span className="ml-1 text-[10px] font-normal text-slate-400">{origens.get(r.id)}</span>}</td>
                         <td>{r.itensAtendidos} de {itens.length}</td>
                         <td className="whitespace-nowrap">{dias(r.prazoEntregaDias)}</td>
+                        <td className="text-xs">{formaPagamento(pagamentos.get(r.id)).rotulo}</td>
                         <td><Estrelas nota={r.notaHistorico} /></td>
                         <td>{moeda(r.valorTotal)}</td>
                         <td>
@@ -317,7 +327,29 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
               <form action={reenviarPedido}><input type="hidden" name="cotacaoId" value={cotacao.id} /><button className="link">Reenviar</button></form>
             )}
           </div>
-          {cotacao.decisao.recebidoEm ? (
+          {(() => {
+            const d = cotacao.decisao;
+            const forma = formaPagamento(d.formaPagamento ?? d.proposta.formaPagamento);
+            return d.pagoEm ? (
+              <p className="mt-3 text-sm text-emerald-700">
+                💳 Pagamento registrado em {dataHora(d.pagoEm)} · {forma.rotulo}{d.pagamentoReferencia && <> · ref. {d.pagamentoReferencia}</>}. Fornecedor avisado para seguir com a entrega.
+              </p>
+            ) : (
+              <form action={registrarPagamento} className="mt-4 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4">
+                <input type="hidden" name="cotacaoId" value={cotacao.id} />
+                <div className="w-full text-sm">
+                  <p className="font-medium">💳 Aguardando pagamento: {forma.rotulo}, vencimento {data(vencimento(d.decididoEm, forma.valor))}</p>
+                  <p className="text-xs text-slate-500">O resumo da compra com o valor e os dados para pagamento foi enviado ao seu e-mail. Depois de pagar, registre aqui para o fornecedor seguir com a entrega.</p>
+                </div>
+                <div className="min-w-[260px] flex-1">
+                  <label className="rotulo">Referência do pagamento (opcional)</label>
+                  <input className="campo" name="referencia" placeholder="Ex.: comprovante PIX, nº do boleto" />
+                </div>
+                <button className="btn-sucesso">✔ Registrar pagamento</button>
+              </form>
+            );
+          })()}
+          {!cotacao.decisao.pagoEm ? null : cotacao.decisao.recebidoEm ? (
             <p className="mt-3 text-sm text-emerald-700">
               Recebido em {dataHora(cotacao.decisao.recebidoEm)} · {cotacao.decisao.entregueNoPrazo ? "no prazo" : "com atraso"} · avaliação {cotacao.decisao.avaliacao}/5
             </p>

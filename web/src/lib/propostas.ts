@@ -38,7 +38,7 @@ export function lerItensDoFormulario(fd: FormData, itens: { id: number; quantida
 
 /** Grava (ou substitui) a proposta de um fornecedor, com o preço de cada item. */
 export async function salvarProposta(dados: {
-  cotacaoId: number; fornecedorId: number; prazoEntregaDias: number; observacao: string | null; origem: Origem; itens: ItemDigitado[];
+  cotacaoId: number; fornecedorId: number; prazoEntregaDias: number; formaPagamento: string; observacao: string | null; origem: Origem; itens: ItemDigitado[];
 }) {
   const { cotacaoId, fornecedorId, itens, ...resto } = dados;
   return prisma.$transaction(async (tx) => {

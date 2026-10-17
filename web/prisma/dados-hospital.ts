@@ -32,10 +32,10 @@ export const produtos: {
 ];
 
 export const fornecedores = [
-  { nome: "Medfarma Distribuidora Hospitalar", cnpj: "12345678000101", email: "vendas@medfarma.com.br", telefone: "(27) 3721-1000", contato: "Ana Souza", notaHistorico: 4.6 },
-  { nome: "Vitória Cirúrgica Ltda", cnpj: "23456789000102", email: "comercial@vitoriacirurgica.com.br", telefone: "(27) 3722-2000", contato: "Carlos Lima", notaHistorico: 4.1 },
-  { nome: "Hospimed Atacado Online", cnpj: "34567890000103", email: "cotacao@hospimed.com.br", telefone: "(11) 4000-3000", contato: "Fernanda Reis", notaHistorico: 3.2 },
-  { nome: "Capixaba Produtos Médicos", cnpj: "45678901000104", email: "pedidos@capixabamed.com.br", telefone: "(27) 3724-4000", contato: "João Pedro", notaHistorico: 3.8 },
-  { nome: "PreçoBom Medical Supply", cnpj: "56789012000105", email: "b2b@precobommed.com.br", telefone: "(11) 4000-5000", contato: "Mariana Alves", notaHistorico: 2.3 },
-  { nome: "Colatina Saúde Distribuidora", cnpj: "67890123000106", email: "loja@colatinasaude.com.br", telefone: "(27) 3725-6000", contato: "Ricardo Gomes", notaHistorico: 4.9 },
+  { nome: "Medfarma Distribuidora Hospitalar", cnpj: "12345678000101", email: "vendas@medfarma.com.br", telefone: "(27) 3721-1000", contato: "Ana Souza", dadosPagamento: "PIX (CNPJ) 12.345.678/0001-01 · Banco do Brasil, ag. 1234-5, cc 56789-0", notaHistorico: 4.6 },
+  { nome: "Vitória Cirúrgica Ltda", cnpj: "23456789000102", email: "comercial@vitoriacirurgica.com.br", telefone: "(27) 3722-2000", contato: "Carlos Lima", dadosPagamento: "PIX (CNPJ) 23.456.789/0001-02 · Caixa, ag. 0678, cc 10234-1", notaHistorico: 4.1 },
+  { nome: "Hospimed Atacado Online", cnpj: "34567890000103", email: "cotacao@hospimed.com.br", telefone: "(11) 4000-3000", contato: "Fernanda Reis", dadosPagamento: "PIX (CNPJ) 34.567.890/0001-03 · Itaú, ag. 0912, cc 45120-3", notaHistorico: 3.2 },
+  { nome: "Capixaba Produtos Médicos", cnpj: "45678901000104", email: "pedidos@capixabamed.com.br", telefone: "(27) 3724-4000", contato: "João Pedro", dadosPagamento: "PIX (CNPJ) 45.678.901/0001-04 · Banestes, ag. 0101, cc 7788-9", notaHistorico: 3.8 },
+  { nome: "PreçoBom Medical Supply", cnpj: "56789012000105", email: "b2b@precobommed.com.br", telefone: "(11) 4000-5000", contato: "Mariana Alves", dadosPagamento: "PIX (CNPJ) 56.789.012/0001-05 · Bradesco, ag. 3301, cc 99001-2", notaHistorico: 2.3 },
+  { nome: "Colatina Saúde Distribuidora", cnpj: "67890123000106", email: "loja@colatinasaude.com.br", telefone: "(27) 3725-6000", contato: "Ricardo Gomes", dadosPagamento: "PIX (CNPJ) 67.890.123/0001-06 · Sicoob, ag. 3008, cc 12121-4", notaHistorico: 4.9 },
 ];
