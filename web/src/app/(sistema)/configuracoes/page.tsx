@@ -5,9 +5,9 @@ import { salvarEnvio, salvarPesos } from "@/acoes/cadastros";
 import { obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 
 const CRITERIOS = [
-  { campo: "preco", rotulo: "Preço", explicacao: "Menor preço da cotação ÷ preço da proposta" },
+  { campo: "preco", rotulo: "Preço", explicacao: "Custo dos itens pelo menor preço de cada item ÷ custo pela proposta" },
   { campo: "prazo", rotulo: "Prazo de entrega", explicacao: "Menor prazo da cotação ÷ prazo da proposta" },
-  { campo: "disponibilidade", rotulo: "Disponibilidade do produto", explicacao: "Quantidade disponível ÷ quantidade necessária (máx. 1)" },
+  { campo: "disponibilidade", rotulo: "Disponibilidade do produto", explicacao: "Média por item de quantidade disponível ÷ necessária (item não cotado = 0)" },
   { campo: "historico", rotulo: "Histórico do fornecedor", explicacao: "Nota do fornecedor (0 a 5) ÷ 5" },
 ] as const;
 

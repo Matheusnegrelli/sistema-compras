@@ -9,8 +9,9 @@ import { registrarLog } from "@/lib/log";
 import { sincronizarEstoque } from "@/lib/sincronizacao";
 import { registrarEntrada, simularConsumo } from "@/lib/estoque-api";
 import { simularPropostas } from "@/lib/simulacao";
-import { classificarPropostas, notaDaEntrega } from "@/lib/pontuacao";
-import { obterPesos } from "@/lib/consultas";
+import { classificarPropostas, notaDaEntrega, quantidadeCompra } from "@/lib/pontuacao";
+import { obterPesos, paraAlgoritmo } from "@/lib/consultas";
+import { lerItensDoFormulario, salvarProposta } from "@/lib/propostas";
 import { abrirCotacao, enviarSolicitacoes, obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 import { falhar, numero, sucesso, texto } from "./util";
 
@@ -50,8 +51,8 @@ export async function criarNecessidadeManual(fd: FormData) {
   });
   await registrarLog(sessao.id, "NECESSIDADE_MANUAL", "NecessidadeCompra", n.id, `${produto.sku} x${quantidade}`);
   if ((await obterConfiguracaoEnvio()).envioAutomatico) {
-    const { cotacao, enviados } = await abrirCotacao(n.id, sessao.id);
-    sucesso(`/cotacoes/${cotacao.id}`, `Necessidade registrada, cotação aberta e enviada a ${enviados} fornecedor(es)`);
+    const { cotacao, enviados, itens } = await abrirCotacao(produto.categoria, sessao.id);
+    sucesso(`/cotacoes/${cotacao.id}`, `Necessidade registrada; cotação de ${produto.categoria} (${itens} item(ns)) enviada a ${enviados} fornecedor(es)`);
   }
   sucesso("/necessidades", "Necessidade registrada");
 }
@@ -59,24 +60,43 @@ export async function criarNecessidadeManual(fd: FormData) {
 export async function cancelarNecessidade(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
   const id = Number(fd.get("id"));
-  const necessidade = await prisma.necessidadeCompra.findUnique({ where: { id } });
+  const necessidade = await prisma.necessidadeCompra.findUnique({ where: { id }, include: { cotacao: { include: { _count: { select: { itens: true } } } } } });
   if (!necessidade || !["ABERTA", "EM_COTACAO"].includes(necessidade.status)) falhar("/necessidades", "Esta necessidade não está mais em aberto");
-  await prisma.necessidadeCompra.update({ where: { id }, data: { status: "CANCELADA" } });
-  await prisma.cotacao.updateMany({ where: { necessidadeId: id, status: "ABERTA" }, data: { status: "CANCELADA", encerradaEm: new Date() } });
+  await prisma.$transaction(async (tx) => {
+    await tx.itemProposta.deleteMany({ where: { necessidadeId: id } });
+    await tx.necessidadeCompra.update({ where: { id }, data: { status: "CANCELADA" } });
+    // Se era o único item de uma cotação aberta, a cotação também é cancelada
+    const c = necessidade.cotacao;
+    if (c && c.status === "ABERTA" && c._count.itens <= 1) {
+      await tx.cotacao.update({ where: { id: c.id }, data: { status: "CANCELADA", encerradaEm: new Date() } });
+    }
+  });
   await registrarLog(sessao.id, "NECESSIDADE_CANCELADA", "NecessidadeCompra", id);
   sucesso("/necessidades", "Necessidade cancelada");
 }
 
+/** Gera uma cotação única com todos os itens em aberto da categoria (a partir de um item ou da categoria). */
 export async function gerarCotacao(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
-  const necessidadeId = Number(fd.get("necessidadeId"));
-  const necessidade = await prisma.necessidadeCompra.findUnique({ where: { id: necessidadeId }, include: { cotacao: true } });
-  if (!necessidade) falhar("/necessidades", "Necessidade não encontrada");
-  if (necessidade.cotacao && necessidade.cotacao.status !== "CANCELADA") redirect(`/cotacoes/${necessidade.cotacao.id}`);
-  if (necessidade.status !== "ABERTA") falhar("/necessidades", "Esta necessidade não está mais em aberto");
-  const { cotacao, enviados } = await abrirCotacao(necessidadeId, sessao.id);
+  let categoria = texto(fd, "categoria");
+  const necessidadeId = Number(fd.get("necessidadeId") || 0);
+  if (necessidadeId) {
+    const n = await prisma.necessidadeCompra.findUnique({ where: { id: necessidadeId }, include: { produto: true, cotacao: true } });
+    if (!n) falhar("/necessidades", "Necessidade não encontrada");
+    if (n.cotacao && n.cotacao.status !== "CANCELADA") redirect(`/cotacoes/${n.cotacao.id}`);
+    if (n.status !== "ABERTA") falhar("/necessidades", "Esta necessidade não está mais em aberto");
+    categoria = n.produto.categoria;
+  }
+  if (!categoria) falhar("/necessidades", "Categoria não informada");
+  let resultado;
+  try {
+    resultado = await abrirCotacao(categoria, sessao.id);
+  } catch (e) {
+    falhar("/necessidades", e instanceof Error ? e.message : "Não foi possível abrir a cotação");
+  }
   revalidatePath("/", "layout");
-  sucesso(`/cotacoes/${cotacao.id}`, `Cotação aberta e pedido enviado a ${enviados} fornecedor(es)`);
+  const { cotacao, enviados, itens } = resultado;
+  sucesso(`/cotacoes/${cotacao.id}`, `Cotação de ${categoria} aberta com ${itens} item(ns) e enviada a ${enviados} fornecedor(es)`);
 }
 
 export async function reenviarCotacao(fd: FormData) {
@@ -90,7 +110,7 @@ export async function reenviarCotacao(fd: FormData) {
 
 // ---------- Propostas ----------
 async function cotacaoAberta(id: number) {
-  const c = await prisma.cotacao.findUnique({ where: { id }, include: { necessidade: { include: { produto: true } } } });
+  const c = await prisma.cotacao.findUnique({ where: { id }, include: { itens: { include: { produto: true }, orderBy: { id: "asc" } } } });
   if (!c) falhar("/cotacoes", "Cotação não encontrada");
   if (c.status !== "ABERTA") falhar(`/cotacoes/${id}`, "Esta cotação já foi encerrada");
   return c;
@@ -100,31 +120,16 @@ export async function adicionarProposta(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
   const cotacaoId = Number(fd.get("cotacaoId"));
   const volta = `/cotacoes/${cotacaoId}`;
-  await cotacaoAberta(cotacaoId);
+  const c = await cotacaoAberta(cotacaoId);
   const fornecedorId = Number(fd.get("fornecedorId"));
-  const preco = numero(fd, "precoUnitario");
   const prazo = numero(fd, "prazoEntregaDias");
-  const disponivel = numero(fd, "quantidadeDisponivel");
-  const minima = numero(fd, "quantidadeMinima");
   if (!fornecedorId) falhar(volta, "Selecione o fornecedor");
-  if (!(preco > 0)) falhar(volta, "Preço unitário deve ser maior que zero");
   if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Prazo de entrega inválido");
-  if (!Number.isInteger(disponivel) || disponivel < 0) falhar(volta, "Quantidade disponível inválida");
-  const dados = {
-    precoUnitario: preco,
-    prazoEntregaDias: prazo,
-    quantidadeDisponivel: disponivel,
-    quantidadeMinima: Number.isInteger(minima) && minima > 0 ? minima : 1,
-    observacao: texto(fd, "observacao") || null,
-    origem: "MANUAL" as const,
-  };
-  const p = await prisma.proposta.upsert({
-    where: { cotacaoId_fornecedorId: { cotacaoId, fornecedorId } },
-    create: { cotacaoId, fornecedorId, ...dados },
-    update: dados,
-  });
+  const lido = lerItensDoFormulario(fd, c.itens);
+  if (lido.erro || !lido.itens) falhar(volta, lido.erro ?? "Itens inválidos");
+  const p = await salvarProposta({ cotacaoId, fornecedorId, prazoEntregaDias: prazo, observacao: texto(fd, "observacao") || null, origem: "MANUAL", itens: lido.itens });
   await prisma.solicitacaoCotacao.updateMany({ where: { cotacaoId, fornecedorId, respondidoEm: null }, data: { respondidoEm: new Date() } });
-  await registrarLog(sessao.id, "PROPOSTA_REGISTRADA", "Proposta", p.id, `Cotação #${cotacaoId}, R$ ${preco}, ${prazo} dias`);
+  await registrarLog(sessao.id, "PROPOSTA_REGISTRADA", "Proposta", p.id, `Cotação #${cotacaoId}, ${lido.itens.length} item(ns), ${prazo} dias`);
   sucesso(volta, "Proposta registrada");
 }
 
@@ -138,20 +143,23 @@ export async function removerProposta(fd: FormData) {
   sucesso(`/cotacoes/${p.cotacaoId}`, "Proposta removida");
 }
 
-/** Demonstração: simula os fornecedores convidados respondendo pelo link da cotação. */
+/** Demonstração: simula os fornecedores convidados respondendo ao pedido de cotação. */
 export async function simularPropostasCotacao(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
   const cotacaoId = Number(fd.get("cotacaoId"));
   const c = await cotacaoAberta(cotacaoId);
   const pendentes = await prisma.solicitacaoCotacao.findMany({ where: { cotacaoId, respondidoEm: null }, include: { fornecedor: true } });
-  // Cotações antigas, sem pedido enviado, simulam todos os fornecedores ativos que ainda não responderam
+  // Sem pedido enviado, simula todos os fornecedores ativos que ainda não responderam
   const jaResponderam = await prisma.proposta.findMany({ where: { cotacaoId }, select: { fornecedorId: true } });
   const fornecedores = (await prisma.solicitacaoCotacao.count({ where: { cotacaoId } })) > 0
     ? pendentes.map((s) => s.fornecedor)
     : await prisma.fornecedor.findMany({ where: { ativo: true, id: { notIn: jaResponderam.map((p) => p.fornecedorId) } } });
   if (fornecedores.length === 0) falhar(`/cotacoes/${cotacaoId}`, "Todos os fornecedores convidados já responderam");
-  const propostas = simularPropostas(fornecedores, c.necessidade.quantidade, c.necessidade.produto.precoReferencia ?? 50);
-  await prisma.proposta.createMany({ data: propostas.map((p) => ({ ...p, cotacaoId })), skipDuplicates: true });
+  const propostas = simularPropostas(
+    fornecedores,
+    c.itens.map((i) => ({ necessidadeId: i.id, quantidade: i.quantidade, precoReferencia: i.produto.precoReferencia ?? 50 })),
+  );
+  for (const p of propostas) await salvarProposta({ cotacaoId, ...p });
   await prisma.solicitacaoCotacao.updateMany({
     where: { cotacaoId, fornecedorId: { in: propostas.map((p) => p.fornecedorId) } },
     data: { respondidoEm: new Date(), visualizadoEm: new Date() },
@@ -168,27 +176,19 @@ export async function aprovarProposta(fd: FormData) {
   const justificativa = texto(fd, "justificativa");
   const volta = `/cotacoes/${cotacaoId}`;
   const c = await cotacaoAberta(cotacaoId);
-  const propostas = await prisma.proposta.findMany({ where: { cotacaoId }, include: { fornecedor: true } });
+  const propostas = await prisma.proposta.findMany({ where: { cotacaoId }, include: { fornecedor: true, itens: true } });
   const pesos = await obterPesos();
-  const ranking = classificarPropostas(
-    propostas.map((p) => ({
-      id: p.id,
-      fornecedor: p.fornecedor.nome,
-      precoUnitario: p.precoUnitario,
-      prazoEntregaDias: p.prazoEntregaDias,
-      quantidadeDisponivel: p.quantidadeDisponivel,
-      quantidadeMinima: p.quantidadeMinima,
-      notaHistorico: p.fornecedor.notaHistorico,
-    })),
-    c.necessidade.quantidade,
-    pesos,
-  );
+  const { necessarios, entradas } = paraAlgoritmo(c.itens, propostas);
+  const ranking = classificarPropostas(entradas, necessarios, pesos);
   const escolhida = ranking.find((r) => r.id === propostaId);
   if (!escolhida) falhar(volta, "Proposta não encontrada");
   const seguiu = escolhida.posicao === 1;
   if (!seguiu && justificativa.length < 5) {
     falhar(volta, "Informe uma justificativa ao escolher uma proposta diferente da recomendada");
   }
+  // Itens que o fornecedor escolhido não cotou voltam para "em aberto" e podem entrar em outra cotação
+  const atendidos = escolhida.itensCalculados.map((i) => i.necessidadeId);
+  const naoAtendidos = c.itens.map((i) => i.id).filter((id) => !atendidos.includes(id));
   await prisma.$transaction([
     prisma.decisao.create({
       data: {
@@ -203,24 +203,26 @@ export async function aprovarProposta(fd: FormData) {
       },
     }),
     prisma.cotacao.update({ where: { id: cotacaoId }, data: { status: "APROVADA", encerradaEm: new Date() } }),
-    prisma.necessidadeCompra.update({ where: { id: c.necessidadeId }, data: { status: "ATENDIDA" } }),
+    prisma.necessidadeCompra.updateMany({ where: { id: { in: atendidos } }, data: { status: "ATENDIDA" } }),
+    prisma.necessidadeCompra.updateMany({ where: { id: { in: naoAtendidos } }, data: { status: "ABERTA", cotacaoId: null } }),
   ]);
   await registrarLog(sessao.id, "COMPRA_APROVADA", "Cotacao", cotacaoId,
     `${escolhida.fornecedor} (${escolhida.pontuacao} pts, ${seguiu ? "recomendada" : "diferente da recomendada"})`);
   revalidatePath("/", "layout");
-  sucesso(volta, "Proposta selecionada e registrada no histórico");
+  const aviso = naoAtendidos.length > 0 ? ` ${naoAtendidos.length} item(ns) não cotado(s) por este fornecedor voltaram para Necessidades.` : "";
+  sucesso(volta, `Proposta selecionada e registrada no histórico.${aviso}`);
 }
 
 export async function cancelarCotacao(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
   const id = Number(fd.get("cotacaoId"));
-  const c = await cotacaoAberta(id);
+  await cotacaoAberta(id);
   await prisma.$transaction([
     prisma.cotacao.update({ where: { id }, data: { status: "CANCELADA", encerradaEm: new Date() } }),
-    prisma.necessidadeCompra.update({ where: { id: c.necessidadeId }, data: { status: "ABERTA" } }),
+    prisma.necessidadeCompra.updateMany({ where: { cotacaoId: id, status: "EM_COTACAO" }, data: { status: "ABERTA" } }),
   ]);
   await registrarLog(sessao.id, "COTACAO_CANCELADA", "Cotacao", id);
-  sucesso("/cotacoes", "Cotação cancelada; a necessidade voltou para aberta");
+  sucesso("/necessidades", "Cotação cancelada; os itens voltaram para Necessidades");
 }
 
 /** Registra o recebimento: atualiza o histórico do fornecedor e dá entrada na API de estoque. */
@@ -233,7 +235,7 @@ export async function registrarRecebimento(fd: FormData) {
   if (!Number.isInteger(avaliacao) || avaliacao < 1 || avaliacao > 5) falhar(volta, "Avalie a entrega de 1 a 5");
   const decisao = await prisma.decisao.findUnique({
     where: { cotacaoId },
-    include: { proposta: true, cotacao: { include: { necessidade: { include: { produto: true } } } } },
+    include: { proposta: { include: { itens: { include: { necessidade: { include: { produto: true } } } } } } },
   });
   if (!decisao) falhar(volta, "Esta cotação ainda não foi aprovada");
   if (decisao.recebidoEm) falhar(volta, "Recebimento já registrado");
@@ -251,16 +253,16 @@ export async function registrarRecebimento(fd: FormData) {
   const novaNota = Math.round(((fornecedor.notaHistorico * pesoAtual + notaDaEntrega(avaliacao, noPrazo)) / (pesoAtual + 1)) * 100) / 100;
   await prisma.fornecedor.update({ where: { id: fornecedorId }, data: { notaHistorico: novaNota } });
 
-  const produto = decisao.cotacao.necessidade.produto;
-  const quantidade = Math.max(
-    Math.min(decisao.cotacao.necessidade.quantidade, decisao.proposta.quantidadeDisponivel),
-    decisao.proposta.quantidadeMinima,
-  );
+  // Dá entrada na API de estoque de cada item comprado
   let msgEstoque = "";
   try {
-    await registrarEntrada(produto.sku, quantidade, `Recebimento da cotação #${cotacaoId}`);
+    for (const item of decisao.proposta.itens) {
+      if (item.necessidade.status !== "ATENDIDA") continue;
+      const qtd = quantidadeCompra(item.necessidade.quantidade, item);
+      await registrarEntrada(item.necessidade.produto.sku, qtd, `Recebimento da cotação #${cotacaoId}`);
+    }
     await sincronizarEstoque("AUTOMATICA", sessao.id);
-    msgEstoque = ` Entrada de ${quantidade} ${produto.unidade} enviada à API de estoque.`;
+    msgEstoque = " Entrada dos itens enviada à API de estoque.";
   } catch {
     msgEstoque = " Não foi possível dar entrada na API de estoque.";
   }

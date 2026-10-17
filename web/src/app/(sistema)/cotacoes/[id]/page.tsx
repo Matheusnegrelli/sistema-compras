@@ -23,7 +23,9 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
   // Após a decisão, mostra o ranking registrado no momento da aprovação (rastreabilidade)
   const ranking = cotacao.decisao ? (cotacao.decisao.ranking as unknown as PropostaClassificada[]) : dados.ranking;
   const pesosExibidos = cotacao.decisao ? (cotacao.decisao.pesos as typeof pesos) : pesos;
-  const { necessidade } = cotacao;
+  const { itens } = cotacao;
+  const setoresDaCotacao = [...new Set(itens.map((i) => i.produto.setor?.sigla ?? "-"))].join(", ");
+  const temCritico = itens.some((i) => i.produto.criticidade === "ALTA");
   const fornecedores = aberta ? await prisma.fornecedor.findMany({ where: { ativo: true }, orderBy: { nome: "asc" } }) : [];
   const melhor = ranking[0];
   const origens = new Map(cotacao.propostas.map((p) => [p.id, ROTULO_ORIGEM[p.origem]]));
@@ -32,14 +34,33 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
   return (
     <div>
       <Cabecalho
-        titulo={`Cotação #${cotacao.id} · ${necessidade.produto.nome}`}
-        descricao={`${necessidade.produto.setor?.nome ?? "Sem setor"} · ${necessidade.quantidade} ${necessidade.produto.unidade} · estoque no alerta ${necessidade.estoqueNoMomento} (mínimo ${necessidade.estoqueMinimo}) · aberta por ${cotacao.criadoPor?.nome ?? "rotina automática"} em ${dataHora(cotacao.criadoEm)}`}
+        titulo={`Cotação #${cotacao.id} · ${cotacao.categoria}`}
+        descricao={`${itens.length} ${itens.length === 1 ? "item" : "itens"} · setores ${setoresDaCotacao} · aberta por ${cotacao.criadoPor?.nome ?? "rotina automática"} em ${dataHora(cotacao.criadoEm)}`}
       >
-        {necessidade.produto.criticidade === "ALTA" && <Criticidade valor="ALTA" />}
+        {temCritico && <Criticidade valor="ALTA" />}
         <Status valor={cotacao.status} />
         {ranking.length > 0 && <Link href={`/cotacoes/${cotacao.id}/relatorio`} className="btn-secundario">🖨️ Relatório de apoio à decisão</Link>}
       </Cabecalho>
       <Aviso searchParams={searchParams} />
+
+      <div className="card mb-6 overflow-x-auto">
+        <h2 className="mb-3">Itens da cotação</h2>
+        <table className="tabela">
+          <thead><tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque no alerta</th><th>Mínimo</th><th>Comprar</th></tr></thead>
+          <tbody>
+            {itens.map((i) => (
+              <tr key={i.id}>
+                <td><span className="font-mono text-xs text-slate-500">{i.produto.sku}</span> {i.produto.nome}</td>
+                <td className="text-sm">{i.produto.setor?.nome ?? "-"}</td>
+                <td><Criticidade valor={i.produto.criticidade} /></td>
+                <td className="font-semibold text-red-600">{i.estoqueNoMomento}</td>
+                <td>{i.estoqueMinimo}</td>
+                <td className="whitespace-nowrap font-medium">{i.quantidade} {i.produto.unidade}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {(aberta || cotacao.solicitacoes.length > 0) && (
         <div className="card mb-6">
@@ -91,21 +112,33 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
           {aberta && (
             <details className="mt-4">
               <summary className="cursor-pointer text-sm font-medium text-marca-700">+ Registrar proposta recebida por telefone ou WhatsApp</summary>
-              <form action={adicionarProposta} className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-6">
+              <form action={adicionarProposta} className="mt-3 space-y-3">
                 <input type="hidden" name="cotacaoId" value={cotacao.id} />
-                <div className="col-span-2">
-                  <label className="rotulo">Fornecedor</label>
-                  <select className="campo" name="fornecedorId" required>
-                    <option value="">Selecione</option>
-                    {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-                  </select>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                  <div className="md:col-span-2">
+                    <label className="rotulo">Fornecedor</label>
+                    <select className="campo" name="fornecedorId" required>
+                      <option value="">Selecione</option>
+                      {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                    </select>
+                  </div>
+                  <div><label className="rotulo">Prazo de entrega (dias)</label><input className="campo" name="prazoEntregaDias" type="number" min={0} required /></div>
+                  <div><label className="rotulo">Observação</label><input className="campo" name="observacao" /></div>
                 </div>
-                <div><label className="rotulo">Preço unit. (R$)</label><input className="campo" name="precoUnitario" type="number" step="0.01" min="0.01" required /></div>
-                <div><label className="rotulo">Prazo (dias)</label><input className="campo" name="prazoEntregaDias" type="number" min={0} required /></div>
-                <div><label className="rotulo">Qtd. disponível</label><input className="campo" name="quantidadeDisponivel" type="number" min={0} required defaultValue={necessidade.quantidade} /></div>
-                <div><label className="rotulo">Qtd. mínima</label><input className="campo" name="quantidadeMinima" type="number" min={1} defaultValue={1} /></div>
-                <div className="col-span-2 md:col-span-5"><label className="rotulo">Observação</label><input className="campo" name="observacao" /></div>
-                <div className="flex items-end"><button className="btn-secundario w-full">Salvar proposta</button></div>
+                <table className="tabela">
+                  <thead><tr><th>Item</th><th>Preço unit. (R$)</th><th>Qtd. disponível</th><th>Qtd. mínima</th></tr></thead>
+                  <tbody>
+                    {itens.map((i) => (
+                      <tr key={i.id}>
+                        <td className="text-sm">{i.produto.nome} <span className="text-slate-400">({i.quantidade} {i.produto.unidade})</span></td>
+                        <td><input className="campo" name={`preco_${i.id}`} type="number" step="0.01" min="0.01" placeholder="não cotou" /></td>
+                        <td><input className="campo" name={`disp_${i.id}`} type="number" min={0} defaultValue={i.quantidade} /></td>
+                        <td><input className="campo" name={`min_${i.id}`} type="number" min={1} defaultValue={1} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <button className="btn-secundario">Salvar proposta</button>
               </form>
             </details>
           )}
@@ -126,14 +159,14 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
             {aberta && melhor && (
               <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
                 <strong>Recomendação do sistema:</strong> {melhor.fornecedor} com {melhor.pontuacao.toFixed(1)} pontos
-                ({moeda(melhor.precoUnitario)}/un, {dias(melhor.prazoEntregaDias)}, total {moeda(melhor.valorTotal)}).
+                ({melhor.itensAtendidos} de {itens.length} {itens.length === 1 ? "item" : "itens"}, entrega em {dias(melhor.prazoEntregaDias)}, total {moeda(melhor.valorTotal)}).
                 A escolha final é do comprador.
               </div>
             )}
             <div className="overflow-x-auto">
               <table className="tabela">
                 <thead>
-                  <tr><th>#</th><th>Fornecedor</th><th>Preço unit.</th><th>Prazo</th><th>Disponível</th><th>Qtd. mín.</th><th>Histórico</th><th>Valor total</th><th>Pontuação</th><th>Alertas</th><th></th></tr>
+                  <tr><th>#</th><th>Fornecedor</th><th>Itens cotados</th><th>Prazo</th><th>Histórico</th><th>Valor total</th><th>Pontuação</th><th>Alertas</th><th></th></tr>
                 </thead>
                 <tbody>
                   {ranking.map((r) => {
@@ -142,10 +175,8 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                       <tr key={r.id} className={escolhida ? "bg-emerald-50" : ""}>
                         <td className="font-semibold">{r.posicao}º</td>
                         <td className="font-medium">{r.fornecedor}{escolhida && " ✅"}{origens.get(r.id) && <span className="ml-1 text-[10px] font-normal text-slate-400">{origens.get(r.id)}</span>}</td>
-                        <td>{moeda(r.precoUnitario)}</td>
+                        <td>{r.itensAtendidos} de {itens.length}</td>
                         <td className="whitespace-nowrap">{dias(r.prazoEntregaDias)}</td>
-                        <td>{r.quantidadeDisponivel}</td>
-                        <td>{r.quantidadeMinima}</td>
                         <td><Estrelas nota={r.notaHistorico} /></td>
                         <td>{moeda(r.valorTotal)}</td>
                         <td>
@@ -165,6 +196,28 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                             </form>
                           )}
                         </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <h3 className="mb-2 mt-6 text-sm font-semibold text-slate-700">Preço unitário por item (menor preço em verde)</h3>
+            <div className="overflow-x-auto">
+              <table className="tabela">
+                <thead><tr><th>Item</th>{ranking.map((r) => <th key={r.id}>{r.posicao}º {r.fornecedor}</th>)}</tr></thead>
+                <tbody>
+                  {itens.map((i) => {
+                    const precos = ranking.map((r) => r.itensCalculados.find((x) => x.necessidadeId === i.id));
+                    const menor = Math.min(...precos.filter(Boolean).map((x) => x!.precoUnitario));
+                    return (
+                      <tr key={i.id}>
+                        <td className="text-sm">{i.produto.nome} <span className="text-slate-400">({i.quantidade} {i.produto.unidade})</span></td>
+                        {precos.map((x, k) => (
+                          <td key={k} className={x && x.precoUnitario === menor ? "font-semibold text-emerald-700" : ""}>
+                            {x ? <>{moeda(x.precoUnitario)}{x.quantidadeDisponivel < i.quantidade && <span className="block text-[10px] text-amber-700">só {x.quantidadeDisponivel}</span>}</> : <span className="text-slate-400">não cotou</span>}
+                          </td>
+                        ))}
                       </tr>
                     );
                   })}

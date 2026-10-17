@@ -1,34 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { classificarPropostas, normalizarPesos, quantidadeSugerida, notaDaEntrega, PropostaEntrada } from "./pontuacao";
+import { classificarPropostas, normalizarPesos, quantidadeSugerida, notaDaEntrega, type PropostaEntrada } from "./pontuacao";
 
-const base: Omit<PropostaEntrada, "id" | "fornecedor"> = {
-  precoUnitario: 10,
-  prazoEntregaDias: 5,
-  quantidadeDisponivel: 100,
-  quantidadeMinima: 1,
-  notaHistorico: 5,
-};
+// Cotação de um único item (como no projeto original)
+const ITEM = [{ necessidadeId: 1, produto: "Luva", quantidade: 50 }];
+function umItem(id: number, fornecedor: string, o: { preco?: number; prazo?: number; disponivel?: number; minima?: number; nota?: number } = {}): PropostaEntrada {
+  return {
+    id, fornecedor, prazoEntregaDias: o.prazo ?? 5, notaHistorico: o.nota ?? 5,
+    itens: [{ necessidadeId: 1, precoUnitario: o.preco ?? 10, quantidadeDisponivel: o.disponivel ?? 100, quantidadeMinima: o.minima ?? 1 }],
+  };
+}
 
-describe("classificarPropostas", () => {
+describe("classificarPropostas (um item)", () => {
   it("dá 100 pontos para a proposta que é a melhor em todos os critérios", () => {
-    const [primeira] = classificarPropostas(
-      [
-        { id: 1, fornecedor: "A", ...base },
-        { id: 2, fornecedor: "B", ...base, precoUnitario: 12, prazoEntregaDias: 10 },
-      ],
-      50,
-    );
+    const [primeira] = classificarPropostas([umItem(1, "A"), umItem(2, "B", { preco: 12, prazo: 10 })], ITEM);
     expect(primeira.id).toBe(1);
     expect(primeira.pontuacao).toBe(100);
   });
 
   it("não escolhe só pelo menor preço: prazo e histórico pesam", () => {
     const ranking = classificarPropostas(
-      [
-        { id: 1, fornecedor: "Barato e lento", ...base, precoUnitario: 9, prazoEntregaDias: 20, notaHistorico: 2 },
-        { id: 2, fornecedor: "Rápido e confiável", ...base, precoUnitario: 10, prazoEntregaDias: 3, notaHistorico: 5 },
-      ],
-      50,
+      [umItem(1, "Barato e lento", { preco: 9, prazo: 20, nota: 2 }), umItem(2, "Rápido e confiável", { preco: 10, prazo: 3 })],
+      ITEM,
     );
     expect(ranking[0].fornecedor).toBe("Rápido e confiável");
     expect(ranking[1].alertas).toContain("Fornecedor com histórico baixo");
@@ -36,11 +28,8 @@ describe("classificarPropostas", () => {
 
   it("aplica os pesos padrão de 40/30/20/10", () => {
     const [, segunda] = classificarPropostas(
-      [
-        { id: 1, fornecedor: "A", ...base },
-        { id: 2, fornecedor: "B", ...base, precoUnitario: 20, prazoEntregaDias: 10, quantidadeDisponivel: 25, notaHistorico: 2.5 },
-      ],
-      50,
+      [umItem(1, "A"), umItem(2, "B", { preco: 20, prazo: 10, disponivel: 25, nota: 2.5 })],
+      ITEM,
     );
     // 0.5*40 + 0.5*30 + 0.5*20 + 0.5*10 = 50
     expect(segunda.pontuacao).toBe(50);
@@ -48,22 +37,56 @@ describe("classificarPropostas", () => {
   });
 
   it("permite que o gestor altere os pesos", () => {
-    const propostas = [
-      { id: 1, fornecedor: "Barato", ...base, precoUnitario: 8, prazoEntregaDias: 15 },
-      { id: 2, fornecedor: "Rápido", ...base, precoUnitario: 10, prazoEntregaDias: 2 },
-    ];
-    expect(classificarPropostas(propostas, 10, { preco: 100, prazo: 0, disponibilidade: 0, historico: 0 })[0].fornecedor).toBe("Barato");
-    expect(classificarPropostas(propostas, 10, { preco: 0, prazo: 100, disponibilidade: 0, historico: 0 })[0].fornecedor).toBe("Rápido");
+    const propostas = [umItem(1, "Barato", { preco: 8, prazo: 15 }), umItem(2, "Rápido", { preco: 10, prazo: 2 })];
+    expect(classificarPropostas(propostas, ITEM, { preco: 100, prazo: 0, disponibilidade: 0, historico: 0 })[0].fornecedor).toBe("Barato");
+    expect(classificarPropostas(propostas, ITEM, { preco: 0, prazo: 100, disponibilidade: 0, historico: 0 })[0].fornecedor).toBe("Rápido");
   });
 
   it("calcula o valor total respeitando a quantidade mínima", () => {
-    const [p] = classificarPropostas([{ id: 1, fornecedor: "A", ...base, quantidadeMinima: 80 }], 50);
+    const [p] = classificarPropostas([umItem(1, "A", { minima: 80 })], ITEM);
     expect(p.valorTotal).toBe(800);
     expect(p.alertas[0]).toMatch(/mínima/);
   });
 
   it("retorna lista vazia sem propostas", () => {
-    expect(classificarPropostas([], 10)).toEqual([]);
+    expect(classificarPropostas([], ITEM)).toEqual([]);
+  });
+});
+
+describe("classificarPropostas (cotação por categoria, vários itens)", () => {
+  const itens = [
+    { necessidadeId: 1, produto: "Dipirona", quantidade: 100 },
+    { necessidadeId: 2, produto: "Omeprazol", quantidade: 10 },
+  ];
+  const oferta = (necessidadeId: number, precoUnitario: number) => ({ necessidadeId, precoUnitario, quantidadeDisponivel: 1000, quantidadeMinima: 1 });
+
+  it("compara o custo do pedido inteiro, item a item", () => {
+    const ranking = classificarPropostas(
+      [
+        { id: 1, fornecedor: "A", prazoEntregaDias: 5, notaHistorico: 5, itens: [oferta(1, 1), oferta(2, 10)] }, // 100 + 100 = 200
+        { id: 2, fornecedor: "B", prazoEntregaDias: 5, notaHistorico: 5, itens: [oferta(1, 2), oferta(2, 5)] }, // 200 + 50 = 250
+      ],
+      itens,
+    );
+    expect(ranking[0].fornecedor).toBe("A");
+    expect(ranking[0].valorTotal).toBe(200);
+    // melhor custo possível: 1*100 + 5*10 = 150
+    expect(ranking[0].notas.preco).toBeCloseTo(0.75);
+    expect(ranking[1].notas.preco).toBeCloseTo(0.6);
+  });
+
+  it("penaliza o fornecedor que não cota todos os itens", () => {
+    const ranking = classificarPropostas(
+      [
+        { id: 1, fornecedor: "Completo", prazoEntregaDias: 5, notaHistorico: 5, itens: [oferta(1, 1), oferta(2, 10)] },
+        { id: 2, fornecedor: "Parcial", prazoEntregaDias: 5, notaHistorico: 5, itens: [oferta(1, 1)] },
+      ],
+      itens,
+    );
+    const parcial = ranking.find((r) => r.fornecedor === "Parcial")!;
+    expect(parcial.notas.disponibilidade).toBe(0.5);
+    expect(parcial.itensAtendidos).toBe(1);
+    expect(parcial.alertas).toContain("Não cotou Omeprazol");
   });
 });
 

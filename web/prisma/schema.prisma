@@ -118,15 +118,19 @@ model NecessidadeCompra {
   status           StatusNecessidade @default(ABERTA)
   origem           Origem            @default(AUTOMATICA)
   criadoEm         DateTime          @default(now())
-  cotacao          Cotacao?
+  /// Cotação (por categoria) em que o item está sendo comprado
+  cotacaoId        Int?
+  cotacao          Cotacao?          @relation(fields: [cotacaoId], references: [id], onDelete: SetNull)
+  itensProposta    ItemProposta[]
 
   @@index([status])
 }
 
 model Cotacao {
   id            Int                  @id @default(autoincrement())
-  necessidadeId Int                  @unique
-  necessidade   NecessidadeCompra    @relation(fields: [necessidadeId], references: [id])
+  /// Categoria dos produtos reunidos nesta cotação (ex.: Medicamento, EPI)
+  categoria     String
+  itens         NecessidadeCompra[]
   status        StatusCotacao        @default(ABERTA)
   criadoPorId   Int?
   criadoPor     Usuario?             @relation(fields: [criadoPorId], references: [id])
@@ -171,21 +175,33 @@ model EmailEnviado {
 }
 
 model Proposta {
-  id                   Int        @id @default(autoincrement())
-  cotacaoId            Int
-  cotacao              Cotacao    @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
-  fornecedorId         Int
-  fornecedor           Fornecedor @relation(fields: [fornecedorId], references: [id])
-  precoUnitario        Float
-  prazoEntregaDias     Int
-  quantidadeDisponivel Int
-  quantidadeMinima     Int        @default(1)
-  observacao           String?
-  origem               Origem     @default(MANUAL)
-  criadoEm             DateTime   @default(now())
-  decisoes             Decisao[]
+  id               Int            @id @default(autoincrement())
+  cotacaoId        Int
+  cotacao          Cotacao        @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
+  fornecedorId     Int
+  fornecedor       Fornecedor     @relation(fields: [fornecedorId], references: [id])
+  prazoEntregaDias Int
+  observacao       String?
+  origem           Origem         @default(MANUAL)
+  criadoEm         DateTime       @default(now())
+  itens            ItemProposta[]
+  decisoes         Decisao[]
 
   @@unique([cotacaoId, fornecedorId])
+}
+
+/// Preço de um fornecedor para um item da cotação
+model ItemProposta {
+  id                   Int               @id @default(autoincrement())
+  propostaId           Int
+  proposta             Proposta          @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+  necessidadeId        Int
+  necessidade          NecessidadeCompra @relation(fields: [necessidadeId], references: [id], onDelete: Cascade)
+  precoUnitario        Float
+  quantidadeDisponivel Int
+  quantidadeMinima     Int               @default(1)
+
+  @@unique([propostaId, necessidadeId])
 }
 
 model Decisao {

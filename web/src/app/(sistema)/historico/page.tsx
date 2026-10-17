@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { calcularIndicadores } from "@/lib/indicadores";
-import { listarSetores, setorDoFiltro } from "@/lib/consultas";
+import { listarSetores, resumoItens, setorDoFiltro } from "@/lib/consultas";
 import { FiltroSetor } from "@/components/FiltroSetor";
 import { Cabecalho, Indicador, Vazio } from "@/components/ui";
 import { dataHora, duracao, moeda } from "@/lib/formato";
@@ -26,7 +26,7 @@ export default async function Historico({ searchParams }: { searchParams: Promis
           <div className="p-5"><Vazio>Nenhuma decisão registrada ainda.</Vazio></div>
         ) : (
           <table className="tabela">
-            <thead><tr><th>Data</th><th>Produto</th><th>Setor</th><th>Fornecedor</th><th>Propostas</th><th>Pontuação</th><th>Valor</th><th>Recomendação</th><th>Entrega</th><th></th></tr></thead>
+            <thead><tr><th>Data</th><th>Cotação</th><th>Setores</th><th>Fornecedor</th><th>Propostas</th><th>Pontuação</th><th>Valor</th><th>Recomendação</th><th>Entrega</th><th></th></tr></thead>
             <tbody>
               {ind.decisoes.map((d) => {
                 const ranking = d.ranking as unknown as PropostaClassificada[];
@@ -34,8 +34,8 @@ export default async function Historico({ searchParams }: { searchParams: Promis
                 return (
                   <tr key={d.id}>
                     <td className="text-xs">{dataHora(d.decididoEm)}</td>
-                    <td>{d.cotacao.necessidade.produto.nome}</td>
-                    <td className="text-sm">{d.cotacao.necessidade.produto.setor?.nome ?? "-"}</td>
+                    <td><span className="font-medium">{d.cotacao.categoria}</span><div className="text-xs text-slate-500">{resumoItens(d.cotacao.itens)}</div></td>
+                    <td className="text-sm">{[...new Set(d.cotacao.itens.map((i) => i.produto.setor?.sigla ?? "-"))].join(", ")}</td>
                     <td className="font-medium">{d.proposta.fornecedor.nome}</td>
                     <td>{ranking.length}</td>
                     <td>{d.pontuacao.toFixed(1)}</td>

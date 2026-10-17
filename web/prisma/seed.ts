@@ -21,6 +21,7 @@ async function main() {
   }
   await prisma.log.deleteMany();
   await prisma.emailEnviado.deleteMany();
+  await prisma.itemProposta.deleteMany();
   await prisma.solicitacaoCotacao.deleteMany();
   await prisma.decisao.deleteMany();
   await prisma.proposta.deleteMany();
@@ -52,43 +53,55 @@ async function main() {
   const forns: Awaited<ReturnType<typeof prisma.fornecedor.create>>[] = [];
   for (const f of fornecedores) forns.push(await prisma.fornecedor.create({ data: f }));
 
-  // Histórico de cotações já decididas, para o dashboard e os relatórios
-  // [fornecedor, fator sobre o preço de referência, prazo em dias, fator da quantidade disponível]
+  // Histórico de cotações já decididas (uma por categoria), para o dashboard e os relatórios
+  // propostas: [fornecedor, fator sobre o preço de referência, prazo em dias, fator da quantidade disponível]
   const historico = [
-    { sku: "FAR-003", dias: 28, qtd: 60, propostas: [[0, 1.02, 2, 1], [1, 0.95, 6, 1], [4, 0.84, 15, 1], [5, 1.08, 7, 1.3]] },
-    { sku: "CC-002", dias: 21, qtd: 120, propostas: [[0, 0.98, 2, 1.2], [2, 0.9, 5, 1], [4, 0.82, 12, 0.5], [5, 1.05, 1, 1.5]] },
-    { sku: "UTI-002", dias: 14, qtd: 80, propostas: [[3, 0.97, 3, 1], [1, 1.03, 4, 1.2], [4, 0.85, 10, 1]] },
-    { sku: "INT-001", dias: 9, qtd: 70, propostas: [[3, 0.95, 4, 1], [1, 0.93, 7, 0.8], [5, 1.06, 2, 1.2], [4, 0.8, 14, 1]] },
-    { sku: "HIG-002", dias: 6, qtd: 20, propostas: [[0, 1.01, 3, 1.2], [2, 0.92, 6, 1], [5, 1.1, 6, 1]] },
-    { sku: "LAB-002", dias: 3, qtd: 6, propostas: [[0, 1.0, 5, 1], [3, 0.94, 8, 1], [1, 1.04, 3, 1]] },
+    { categoria: "Medicamento", dias: 28, itens: [["FAR-003", 60]], propostas: [[0, 1.02, 2, 1], [1, 0.95, 6, 1], [4, 0.84, 15, 1], [5, 1.08, 7, 1.3]] },
+    { categoria: "EPI", dias: 21, itens: [["CC-002", 120], ["PS-003", 90]], propostas: [[0, 0.98, 2, 1.2], [2, 0.9, 5, 1], [4, 0.82, 12, 0.5], [5, 1.05, 1, 1.5]] },
+    { categoria: "Material médico-hospitalar", dias: 14, itens: [["UTI-002", 80]], propostas: [[3, 0.97, 3, 1], [1, 1.03, 4, 1.2], [4, 0.85, 10, 1]] },
+    { categoria: "Higiene do paciente", dias: 9, itens: [["INT-001", 70]], propostas: [[3, 0.95, 4, 1], [1, 0.93, 7, 0.8], [5, 1.06, 2, 1.2], [4, 0.8, 14, 1]] },
+    { categoria: "Limpeza e desinfecção", dias: 6, itens: [["HIG-002", 20]], propostas: [[0, 1.01, 3, 1.2], [2, 0.92, 6, 1], [5, 1.1, 6, 1]] },
+    { categoria: "Laboratório", dias: 3, itens: [["LAB-002", 6], ["LAB-001", 16]], propostas: [[0, 1.0, 5, 1], [3, 0.94, 8, 1], [1, 1.04, 3, 1]] },
   ] as const;
 
   for (const h of historico) {
-    const produto = prods.get(h.sku)!;
-    const criado = diasAtras(h.dias, 3);
-    const necessidade = await prisma.necessidadeCompra.create({
-      data: { produtoId: produto.id, quantidade: h.qtd, estoqueNoMomento: Math.floor(produto.estoqueMinimo * 0.6), estoqueMinimo: produto.estoqueMinimo, status: "ATENDIDA", origem: "AUTOMATICA", criadoEm: criado },
-    });
-    const cotacao = await prisma.cotacao.create({ data: { necessidadeId: necessidade.id, criadoPorId: comprador.id, status: "APROVADA", criadoEm: diasAtras(h.dias, 2), encerradaEm: diasAtras(h.dias, 1) } });
+    const cotacao = await prisma.cotacao.create({ data: { categoria: h.categoria, criadoPorId: comprador.id, status: "APROVADA", criadoEm: diasAtras(h.dias, 2), encerradaEm: diasAtras(h.dias, 1) } });
+    const itens = [];
+    for (const [sku, qtd] of h.itens) {
+      const produto = prods.get(sku)!;
+      itens.push({
+        produto,
+        necessidade: await prisma.necessidadeCompra.create({
+          data: { produtoId: produto.id, quantidade: qtd, estoqueNoMomento: Math.floor(produto.estoqueMinimo * 0.6), estoqueMinimo: produto.estoqueMinimo, status: "ATENDIDA", origem: "AUTOMATICA", criadoEm: diasAtras(h.dias, 3), cotacaoId: cotacao.id },
+        }),
+      });
+    }
     const criadas = [];
     for (const [fi, fatorPreco, prazo, fatorDisp] of h.propostas) {
       criadas.push(await prisma.proposta.create({
         data: {
-          cotacaoId: cotacao.id, fornecedorId: forns[fi].id, precoUnitario: Math.round(produto.precoReferencia! * fatorPreco * 100) / 100,
-          prazoEntregaDias: prazo, quantidadeDisponivel: Math.round(h.qtd * fatorDisp), origem: "SIMULADA", criadoEm: diasAtras(h.dias, 2),
+          cotacaoId: cotacao.id, fornecedorId: forns[fi].id, prazoEntregaDias: prazo, origem: "SIMULADA", criadoEm: diasAtras(h.dias, 2),
+          itens: {
+            create: itens.map(({ produto, necessidade }) => ({
+              necessidadeId: necessidade.id,
+              precoUnitario: Math.round(produto.precoReferencia! * fatorPreco * 100) / 100,
+              quantidadeDisponivel: Math.round(necessidade.quantidade * fatorDisp),
+            })),
+          },
         },
+        include: { itens: true },
       }));
     }
     const ranking = classificarPropostas(
       criadas.map((p) => {
         const f = forns.find((x) => x.id === p.fornecedorId)!;
-        return { id: p.id, fornecedor: f.nome, precoUnitario: p.precoUnitario, prazoEntregaDias: p.prazoEntregaDias, quantidadeDisponivel: p.quantidadeDisponivel, quantidadeMinima: p.quantidadeMinima, notaHistorico: f.notaHistorico };
+        return { id: p.id, fornecedor: f.nome, prazoEntregaDias: p.prazoEntregaDias, notaHistorico: f.notaHistorico, itens: p.itens };
       }),
-      h.qtd,
+      itens.map(({ produto, necessidade }) => ({ necessidadeId: necessidade.id, produto: produto.nome, quantidade: necessidade.quantidade })),
       PESOS_PADRAO,
     );
     // Na cotação de fraldas o comprador escolheu a 2ª colocada, com justificativa
-    const divergiu = h.sku === "INT-001";
+    const divergiu = h.categoria === "Higiene do paciente";
     const escolhida = divergiu ? ranking[1] : ranking[0];
     await prisma.decisao.create({
       data: {

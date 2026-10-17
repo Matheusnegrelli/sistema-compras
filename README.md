@@ -44,16 +44,16 @@ O sistema foi aplicado ao contexto hospitalar e abrange todos os setores do hosp
 
 ## Algoritmo de comparação
 
-Cada critério vira uma nota de 0 a 1, normalizada pela melhor proposta da cotação:
+Os itens em necessidade de compra são agrupados por **categoria** (Medicamento, EPI, Material médico-hospitalar...) e cada categoria vira **uma única cotação** com vários itens. Cada fornecedor informa o preço de cada item que trabalha e um prazo de entrega para o pedido. Cada critério vira uma nota de 0 a 1, normalizada pela melhor proposta da cotação:
 
 | Critério | Nota | Peso padrão |
 |---|---|---|
-| Preço | menor preço ÷ preço da proposta | 40% |
+| Preço | custo dos itens cotados pelo menor preço de cada item ÷ custo pela proposta | 40% |
 | Prazo de entrega | menor prazo ÷ prazo da proposta | 30% |
-| Disponibilidade | qtd. disponível ÷ qtd. necessária (máx. 1) | 20% |
+| Disponibilidade | média por item de qtd. disponível ÷ qtd. necessária (máx. 1; item não cotado = 0) | 20% |
 | Histórico do fornecedor | nota (0 a 5) ÷ 5 | 10% |
 
-**Pontuação = Σ nota × peso** (0 a 100). O gestor pode alterar os pesos em "Pesos do algoritmo". O sistema só recomenda: o comprador analisa e seleciona a proposta, e precisa justificar quando escolhe uma proposta diferente da 1ª colocada. No recebimento, a entrega é avaliada e a nota de histórico do fornecedor é recalculada (entrega atrasada perde 1 ponto), e a entrada do material é enviada para a API de estoque.
+**Pontuação = Σ nota × peso** (0 a 100). Com um único item, as fórmulas são as mesmas do projeto. O gestor pode alterar os pesos em "Configurações". Itens que o fornecedor escolhido não cotou voltam para Necessidades e podem entrar em uma nova cotação. O sistema só recomenda: o comprador analisa e seleciona a proposta, e precisa justificar quando escolhe uma proposta diferente da 1ª colocada. No recebimento, a entrega é avaliada e a nota de histórico do fornecedor é recalculada (entrega atrasada perde 1 ponto), e a entrada do material é enviada para a API de estoque.
 
 ## Como rodar
 
@@ -95,9 +95,9 @@ npm run build && npm start    # ou: npm run dev
 ## Roteiro de demonstração
 
 1. Entrar como comprador. O dashboard mostra os produtos, os indicadores e o histórico já carregado.
-2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 4 itens abaixo do mínimo, de vários setores, com os críticos ao paciente no topo.
+2. Clicar em **Sincronizar estoque**: o sistema consulta a API e gera alertas para os 6 itens abaixo do mínimo, em 3 categorias, de vários setores, com os críticos ao paciente no topo.
 3. Usar o filtro de setor (ex.: UTI Adulto) para mostrar a visão de um setor só.
-4. Em **Cotações**, mostrar que cada alerta já virou cotação e foi enviado aos 6 fornecedores ("0 de 6" respostas). Em **E-mails enviados**, mostrar o pedido com o link exclusivo.
+4. Em **Necessidades de compra**, mostrar os itens agrupados por categoria e clicar em **Gerar cotação da categoria** (ou no nome de um item): abre uma única cotação com todos os itens da categoria, enviada aos 6 fornecedores. Em **E-mails enviados**, mostrar o pedido com o link exclusivo.
 5. Abrir uma cotação e clicar em **abrir como fornecedor** em uma linha: é a página que o fornecedor recebe, sem login. Preencher preço e prazo e enviar.
 6. Voltar à cotação: a resposta já entrou no ranking ("via link"). Clicar em **Simular respostas dos fornecedores** para os demais e mostrar que o menor preço nem sempre vence.
 7. Abrir o **Relatório de apoio à decisão** e salvar em PDF.

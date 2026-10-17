@@ -19,7 +19,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       include: { produto: { include: { setor: true } } },
       orderBy: [{ produto: { criticidade: "asc" } }, { criadoEm: "desc" }],
     }),
-    prisma.cotacao.count({ where: { status: "ABERTA", necessidade: { produto: doSetor } } }),
+    prisma.cotacao.count({ where: { status: "ABERTA", ...(setorId ? { itens: { some: { produto: doSetor } } } : {}) } }),
     calcularIndicadores(setorId),
     statusApi(),
     prisma.sincronizacao.findFirst({ orderBy: { iniciadoEm: "desc" } }),

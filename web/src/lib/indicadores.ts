@@ -4,8 +4,8 @@ import type { PropostaClassificada } from "./pontuacao";
 /** Indicadores usados no dashboard e no relatório de resultados (H1 a H4). */
 export async function calcularIndicadores(setorId?: number) {
   const decisoes = await prisma.decisao.findMany({
-    where: setorId ? { cotacao: { necessidade: { produto: { setorId } } } } : {},
-    include: { cotacao: { include: { necessidade: { include: { produto: { include: { setor: true } } } } } }, proposta: { include: { fornecedor: true } } },
+    where: setorId ? { cotacao: { itens: { some: { produto: { setorId } } } } } : {},
+    include: { cotacao: { include: { itens: { include: { produto: { include: { setor: true } } }, orderBy: { id: "asc" } } } }, proposta: { include: { fornecedor: true } } },
     orderBy: { decididoEm: "desc" },
   });
   const sincronizacoes = await prisma.sincronizacao.findMany({ where: { sucesso: true }, orderBy: { iniciadoEm: "desc" }, take: 50 });
@@ -21,14 +21,14 @@ export async function calcularIndicadores(setorId?: number) {
     const escolhida = ranking.find((r) => r.id === d.propostaId);
     const valor = escolhida?.valorTotal ?? 0;
     valorAprovado += valor;
-    // Economia em relação à proposta mais cara recebida (mesma quantidade comprada)
+    // Economia em relação à proposta mais cara entre as que cotaram os mesmos itens
     if (escolhida && ranking.length > 1) {
-      const maiorPreco = Math.max(...ranking.map((r) => r.precoUnitario));
-      const qtd = escolhida.precoUnitario > 0 ? valor / escolhida.precoUnitario : 0;
-      economia += (maiorPreco - escolhida.precoUnitario) * qtd;
+      const comparaveis = ranking.filter((r) => (r.itensAtendidos ?? 1) >= (escolhida.itensAtendidos ?? 1));
+      economia += Math.max(0, Math.max(...comparaveis.map((r) => r.valorTotal)) - valor);
     }
     somaPropostas += ranking.length;
-    tempoTotalMs += d.decididoEm.getTime() - d.cotacao.necessidade.criadoEm.getTime();
+    const primeiroAlerta = Math.min(...d.cotacao.itens.map((i) => i.criadoEm.getTime()), d.cotacao.criadoEm.getTime());
+    tempoTotalMs += d.decididoEm.getTime() - primeiroAlerta;
     const nome = d.proposta.fornecedor.nome;
     porFornecedor.set(nome, (porFornecedor.get(nome) ?? 0) + valor);
   }

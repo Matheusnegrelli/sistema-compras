@@ -18,13 +18,13 @@ export const produtos: {
   estoqueMinimo: number; estoqueInicial: number; precoReferencia: number;
 }[] = [
   { sku: "FAR-001", nome: "Dipirona sódica 500mg/ml ampola 2ml", unidade: "AMP", setor: "FAR", categoria: "Medicamento", criticidade: "ALTA", estoqueMinimo: 300, estoqueInicial: 180, precoReferencia: 1.15 },
-  { sku: "FAR-003", nome: "Omeprazol 40mg injetável", unidade: "FA", setor: "FAR", categoria: "Medicamento", criticidade: "MEDIA", estoqueMinimo: 60, estoqueInicial: 90, precoReferencia: 9.8 },
+  { sku: "FAR-003", nome: "Omeprazol 40mg injetável", unidade: "FA", setor: "FAR", categoria: "Medicamento", criticidade: "MEDIA", estoqueMinimo: 60, estoqueInicial: 40, precoReferencia: 9.8 },
   { sku: "UTI-001", nome: "Cateter venoso central duplo lúmen", unidade: "UN", setor: "UTI", categoria: "Material médico-hospitalar", criticidade: "ALTA", estoqueMinimo: 10, estoqueInicial: 6, precoReferencia: 98 },
-  { sku: "UTI-002", nome: "Equipo para bomba de infusão", unidade: "UN", setor: "UTI", categoria: "Material médico-hospitalar", criticidade: "ALTA", estoqueMinimo: 100, estoqueInicial: 140, precoReferencia: 22.9 },
-  { sku: "CC-002", nome: "Avental cirúrgico descartável estéril", unidade: "UN", setor: "CC", categoria: "EPI", criticidade: "MEDIA", estoqueMinimo: 120, estoqueInicial: 150, precoReferencia: 14.5 },
+  { sku: "UTI-002", nome: "Equipo para bomba de infusão", unidade: "UN", setor: "UTI", categoria: "Material médico-hospitalar", criticidade: "ALTA", estoqueMinimo: 100, estoqueInicial: 70, precoReferencia: 22.9 },
+  { sku: "CC-002", nome: "Avental cirúrgico descartável estéril", unidade: "UN", setor: "CC", categoria: "EPI", criticidade: "MEDIA", estoqueMinimo: 120, estoqueInicial: 90, precoReferencia: 14.5 },
   { sku: "PS-003", nome: "Luva de procedimento M (cx 100)", unidade: "CX", setor: "PS", categoria: "EPI", criticidade: "ALTA", estoqueMinimo: 60, estoqueInicial: 35, precoReferencia: 32 },
   { sku: "INT-001", nome: "Fralda geriátrica G (pct 8)", unidade: "PCT", setor: "INT", categoria: "Higiene do paciente", criticidade: "MEDIA", estoqueMinimo: 80, estoqueInicial: 90, precoReferencia: 21 },
-  { sku: "LAB-001", nome: "Tubo de coleta a vácuo EDTA 4ml (cx 100)", unidade: "CX", setor: "LAB", categoria: "Laboratório", criticidade: "ALTA", estoqueMinimo: 12, estoqueInicial: 8, precoReferencia: 68 },
+  { sku: "LAB-001", nome: "Tubo de coleta a vácuo EDTA 4ml (cx 100)", unidade: "CX", setor: "LAB", categoria: "Laboratório", criticidade: "ALTA", estoqueMinimo: 12, estoqueInicial: 15, precoReferencia: 68 },
   { sku: "LAB-002", nome: "Reagente glicose enzimática 500ml", unidade: "FR", setor: "LAB", categoria: "Laboratório", criticidade: "MEDIA", estoqueMinimo: 6, estoqueInicial: 10, precoReferencia: 145 },
   { sku: "NUT-001", nome: "Dieta enteral polimérica 1L", unidade: "UN", setor: "NUT", categoria: "Nutrição", criticidade: "ALTA", estoqueMinimo: 100, estoqueInicial: 120, precoReferencia: 29.9 },
   { sku: "HIG-002", nome: "Hipoclorito de sódio 1% 5L", unidade: "GL", setor: "HIG", categoria: "Limpeza e desinfecção", criticidade: "MEDIA", estoqueMinimo: 20, estoqueInicial: 26, precoReferencia: 18 },

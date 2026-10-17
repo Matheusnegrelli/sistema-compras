@@ -38,7 +38,7 @@ async function executarSincronizacao(origem: "AUTOMATICA" | "MANUAL", usuarioId?
     const naoCadastrados: string[] = [];
     let itensAtualizados = 0;
     let alertasGerados = 0;
-    const novasNecessidades: number[] = [];
+    const novasNecessidades: string[] = [];
 
     for (const item of itens) {
       const produto = porSku.get(item.sku);
@@ -69,7 +69,7 @@ async function executarSincronizacao(origem: "AUTOMATICA" | "MANUAL", usuarioId?
           alertasGerados++;
           await registrarLog(usuarioId, "ALERTA_GERADO", "NecessidadeCompra", necessidade.id,
             `${produto.sku} com ${item.quantidade} ${produto.unidade} (mínimo ${produto.estoqueMinimo})`);
-          novasNecessidades.push(necessidade.id);
+          novasNecessidades.push(produto.categoria);
         }
       }
     }
@@ -77,9 +77,10 @@ async function executarSincronizacao(origem: "AUTOMATICA" | "MANUAL", usuarioId?
     // Automação de cotações: cada alerta novo já vira cotação enviada aos fornecedores
     let cotacoesEnviadas = 0;
     if (novasNecessidades.length > 0 && (await obterConfiguracaoEnvio()).envioAutomatico) {
-      for (const id of novasNecessidades) {
+      // Uma cotação por categoria com os itens novos
+      for (const categoria of new Set(novasNecessidades)) {
         try {
-          await abrirCotacao(id, null);
+          await abrirCotacao(categoria, null);
           cotacoesEnviadas++;
         } catch (e) {
           console.error("Falha ao abrir cotação automática", e);
