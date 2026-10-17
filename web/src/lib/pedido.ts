@@ -19,7 +19,10 @@ export async function carregarPedido(cotacaoId: number) {
   const escolhida = (decisao.ranking as unknown as PropostaClassificada[]).find((r) => r.id === decisao.propostaId);
   const itens = (escolhida?.itensCalculados ?? []).flatMap((ic) => {
     const n = cotacao.itens.find((i) => i.id === ic.necessidadeId);
-    return n ? [{ ...ic, produto: n.produto }] : [];
+    if (!n) return [];
+    // Vale a quantidade que o comprador decidiu na aprovação
+    const quantidadeCompra = n.quantidadeComprada ?? ic.quantidadeCompra;
+    return [{ ...ic, quantidadeCompra, valor: Math.round(quantidadeCompra * ic.precoUnitario * 100) / 100, produto: n.produto }];
   });
   const total = itens.reduce((a, i) => a + i.valor, 0);
   const prazo = decisao.proposta.prazoEntregaDias;

@@ -112,7 +112,12 @@ model NecessidadeCompra {
   id               Int               @id @default(autoincrement())
   produtoId        Int
   produto          Produto           @relation(fields: [produtoId], references: [id])
+  /// Quantidade a cotar, definida pelo comprador (começa com a sugestão do sistema)
   quantidade       Int
+  /// Quantidade sugerida pelo sistema no alerta de estoque
+  quantidadeSugerida Int?
+  /// Quantidade que o comprador decidiu comprar ao aprovar a proposta
+  quantidadeComprada Int?
   estoqueNoMomento Int
   estoqueMinimo    Int
   status           StatusNecessidade @default(ABERTA)

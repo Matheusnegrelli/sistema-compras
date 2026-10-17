@@ -4,7 +4,7 @@ import { Aviso, Cabecalho, Criticidade, Status, Vazio } from "@/components/ui";
 import { FiltroSetor } from "@/components/FiltroSetor";
 import { listarSetores, setorDoFiltro } from "@/lib/consultas";
 import { dataHora } from "@/lib/formato";
-import { cancelarNecessidade, criarNecessidadeManual, gerarCotacao, sincronizarAgora } from "@/acoes/compras";
+import { alterarQuantidades, cancelarNecessidade, criarNecessidadeManual, gerarCotacao, sincronizarAgora } from "@/acoes/compras";
 
 export default async function Necessidades({ searchParams }: { searchParams: Promise<{ status?: string; setor?: string; erro?: string; ok?: string }> }) {
   const { status, setor } = await searchParams;
@@ -67,7 +67,7 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
                 </div>
                 <table className="tabela">
                   <thead>
-                    <tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque</th><th>Mínimo</th><th>Comprar</th><th>Status</th><th>Detectado</th><th></th></tr>
+                    <tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque</th><th>Mínimo</th><th>Quantidade</th><th>Status</th><th>Detectado</th><th></th></tr>
                   </thead>
                   <tbody>
                     {lista.map((n) => (
@@ -87,7 +87,19 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
                         <td><Criticidade valor={n.produto.criticidade} /></td>
                         <td className="font-semibold text-red-600">{n.estoqueNoMomento}</td>
                         <td>{n.estoqueMinimo}</td>
-                        <td className="whitespace-nowrap">{n.quantidade} {n.produto.unidade}</td>
+                        <td className="whitespace-nowrap">
+                          {semCotacao(n) ? (
+                            <form action={alterarQuantidades} className="flex items-center gap-1" title="Você decide a quantidade; o sistema só sugere">
+                              <input type="hidden" name="necessidadeId" value={n.id} />
+                              <input className="campo w-20 px-2 py-1" type="number" min={1} name={`qtd_${n.id}`} defaultValue={n.quantidade} required />
+                              <span className="text-xs text-slate-500">{n.produto.unidade}</span>
+                              <button className="btn-secundario px-2 py-1 text-xs" title="Salvar quantidade">Salvar</button>
+                            </form>
+                          ) : <>{n.quantidade} {n.produto.unidade}</>}
+                          {n.quantidadeSugerida != null && n.quantidadeSugerida !== n.quantidade && (
+                            <div className="text-[11px] text-slate-400">sugerido: {n.quantidadeSugerida}</div>
+                          )}
+                        </td>
                         <td><Status valor={n.status} /></td>
                         <td className="text-xs">{dataHora(n.criadoEm)}<div className="text-slate-400">{n.origem === "AUTOMATICA" ? "via API" : "manual"}</div></td>
                         <td className="whitespace-nowrap">

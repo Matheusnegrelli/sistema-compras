@@ -76,6 +76,28 @@ export async function cancelarNecessidade(fd: FormData) {
   sucesso("/necessidades", "Necessidade cancelada");
 }
 
+/** O comprador define a quantidade a cotar de cada item (a do sistema é só sugestão). */
+export async function alterarQuantidades(fd: FormData) {
+  const sessao = await exigirSessao("COMPRADOR");
+  const volta = texto(fd, "volta") || "/necessidades";
+  const ids = fd.getAll("necessidadeId").map(Number);
+  const itens = await prisma.necessidadeCompra.findMany({ where: { id: { in: ids } }, include: { produto: true, cotacao: true } });
+  const mudancas: string[] = [];
+  for (const n of itens) {
+    const qtd = numero(fd, `qtd_${n.id}`);
+    if (!Number.isInteger(qtd) || qtd <= 0) falhar(volta, `Quantidade inválida para ${n.produto.nome}`);
+    if (qtd === n.quantidade) continue;
+    const editavel = n.status === "ABERTA" || (n.status === "EM_COTACAO" && n.cotacao?.status === "ABERTA");
+    if (!editavel) falhar(volta, `${n.produto.nome} já foi comprado`);
+    await prisma.necessidadeCompra.update({ where: { id: n.id }, data: { quantidade: qtd } });
+    mudancas.push(`${n.produto.sku}: ${n.quantidade} → ${qtd}`);
+  }
+  if (mudancas.length === 0) sucesso(volta, "Nenhuma quantidade alterada");
+  await registrarLog(sessao.id, "QUANTIDADE_ALTERADA", "NecessidadeCompra", ids[0], mudancas.join("; "));
+  revalidatePath("/", "layout");
+  sucesso(volta, `Quantidade atualizada (${mudancas.length} item(ns))`);
+}
+
 /** Gera uma cotação única com todos os itens em aberto da categoria (a partir de um item ou da categoria). */
 export async function gerarCotacao(fd: FormData) {
   const sessao = await exigirSessao("COMPRADOR");
@@ -195,6 +217,16 @@ export async function aprovarProposta(fd: FormData) {
   if (!seguiu && justificativa.length < 5) {
     falhar(volta, "Informe uma justificativa ao escolher uma proposta diferente da recomendada");
   }
+  // Quantidade que o comprador decidiu comprar de cada item, dentro do que o fornecedor oferece
+  const comprar = new Map<number, number>();
+  for (const ic of escolhida.itensCalculados) {
+    const n = c.itens.find((i) => i.id === ic.necessidadeId)!;
+    const qtd = fd.get(`comprar_${ic.necessidadeId}`) == null ? ic.quantidadeCompra : numero(fd, `comprar_${ic.necessidadeId}`);
+    if (!Number.isInteger(qtd) || qtd <= 0) falhar(volta, `Informe a quantidade a comprar de ${n.produto.nome}`);
+    if (qtd > ic.quantidadeDisponivel) falhar(volta, `${n.produto.nome}: ${escolhida.fornecedor} só tem ${ic.quantidadeDisponivel} ${n.produto.unidade}`);
+    if (qtd < ic.quantidadeMinima) falhar(volta, `${n.produto.nome}: ${escolhida.fornecedor} exige compra mínima de ${ic.quantidadeMinima} ${n.produto.unidade}`);
+    comprar.set(ic.necessidadeId, qtd);
+  }
   // Itens que o fornecedor escolhido não cotou voltam para "em aberto" e podem entrar em outra cotação
   const atendidos = escolhida.itensCalculados.map((i) => i.necessidadeId);
   const naoAtendidos = c.itens.map((i) => i.id).filter((id) => !atendidos.includes(id));
@@ -212,7 +244,7 @@ export async function aprovarProposta(fd: FormData) {
       },
     }),
     prisma.cotacao.update({ where: { id: cotacaoId }, data: { status: "APROVADA", encerradaEm: new Date() } }),
-    prisma.necessidadeCompra.updateMany({ where: { id: { in: atendidos } }, data: { status: "ATENDIDA" } }),
+    ...[...comprar].map(([id, qtd]) => prisma.necessidadeCompra.update({ where: { id }, data: { status: "ATENDIDA", quantidadeComprada: qtd } })),
     prisma.necessidadeCompra.updateMany({ where: { id: { in: naoAtendidos } }, data: { status: "ABERTA", cotacaoId: null } }),
   ]);
   await registrarLog(sessao.id, "COMPRA_APROVADA", "Cotacao", cotacaoId,
@@ -279,7 +311,7 @@ export async function registrarRecebimento(fd: FormData) {
   try {
     for (const item of decisao.proposta.itens) {
       if (item.necessidade.status !== "ATENDIDA") continue;
-      const qtd = quantidadeCompra(item.necessidade.quantidade, item);
+      const qtd = item.necessidade.quantidadeComprada ?? quantidadeCompra(item.necessidade.quantidade, item);
       await registrarEntrada(item.necessidade.produto.sku, qtd, `Recebimento da cotação #${cotacaoId}`);
     }
     await sincronizarEstoque("AUTOMATICA", sessao.id);

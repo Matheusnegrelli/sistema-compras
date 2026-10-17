@@ -57,10 +57,12 @@ async function executarSincronizacao(origem: "AUTOMATICA" | "MANUAL", usuarioId?
           where: { produtoId: produto.id, status: { in: ["ABERTA", "EM_COTACAO"] } },
         });
         if (!emAberto) {
+          const sugerida = quantidadeSugerida(item.quantidade, produto.estoqueMinimo, produto.quantidadeReposicao);
           const necessidade = await prisma.necessidadeCompra.create({
             data: {
               produtoId: produto.id,
-              quantidade: quantidadeSugerida(item.quantidade, produto.estoqueMinimo, produto.quantidadeReposicao),
+              quantidade: sugerida,
+              quantidadeSugerida: sugerida,
               estoqueNoMomento: item.quantidade,
               estoqueMinimo: produto.estoqueMinimo,
               origem: "AUTOMATICA",

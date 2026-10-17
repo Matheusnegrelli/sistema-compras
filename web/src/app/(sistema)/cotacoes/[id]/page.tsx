@@ -10,7 +10,7 @@ import { dataHora, dias, moeda } from "@/lib/formato";
 const ROTULO_ORIGEM: Record<string, string> = { FORNECEDOR: "via link", SIMULADA: "simulada", MANUAL: "lançada", AUTOMATICA: "" };
 import type { PropostaClassificada } from "@/lib/pontuacao";
 import {
-  adicionarProposta, aprovarProposta, cancelarCotacao, registrarRecebimento, reenviarPedido, reenviarCotacao, removerProposta, simularPropostasCotacao,
+  adicionarProposta, aprovarProposta, cancelarCotacao, registrarRecebimento, reenviarPedido, alterarQuantidades, reenviarCotacao, removerProposta, simularPropostasCotacao,
 } from "@/acoes/compras";
 
 export default async function Cotacao({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ erro?: string; ok?: string }> }) {
@@ -44,10 +44,14 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
       </Cabecalho>
       <Aviso searchParams={searchParams} />
 
-      <div className="card mb-6 overflow-x-auto">
-        <h2 className="mb-3">Itens da cotação</h2>
+      <form action={alterarQuantidades} className="card mb-6 overflow-x-auto">
+        <input type="hidden" name="volta" value={`/cotacoes/${cotacao.id}`} />
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2>Itens da cotação</h2>
+          {aberta && <button className="btn-secundario px-3 py-1 text-xs">Salvar quantidades</button>}
+        </div>
         <table className="tabela">
-          <thead><tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque no alerta</th><th>Mínimo</th><th>Comprar</th></tr></thead>
+          <thead><tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque no alerta</th><th>Mínimo</th><th>Quantidade a cotar</th></tr></thead>
           <tbody>
             {itens.map((i) => (
               <tr key={i.id}>
@@ -56,12 +60,22 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                 <td><Criticidade valor={i.produto.criticidade} /></td>
                 <td className="font-semibold text-red-600">{i.estoqueNoMomento}</td>
                 <td>{i.estoqueMinimo}</td>
-                <td className="whitespace-nowrap font-medium">{i.quantidade} {i.produto.unidade}</td>
+                <td className="whitespace-nowrap font-medium">
+                  {aberta ? (
+                    <span className="flex items-center gap-1">
+                      <input type="hidden" name="necessidadeId" value={i.id} />
+                      <input className="campo w-24 px-2 py-1" type="number" min={1} name={`qtd_${i.id}`} defaultValue={i.quantidade} required />
+                      <span className="text-xs text-slate-500">{i.produto.unidade}</span>
+                    </span>
+                  ) : <>{i.quantidadeComprada ?? i.quantidade} {i.produto.unidade}{i.quantidadeComprada != null && i.quantidadeComprada !== i.quantidade && <span className="block text-[11px] font-normal text-slate-400">cotado: {i.quantidade}</span>}</>}
+                  {aberta && i.quantidadeSugerida != null && i.quantidadeSugerida !== i.quantidade && <span className="block text-[11px] font-normal text-slate-400">sugerido pelo sistema: {i.quantidadeSugerida}</span>}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+        {aberta && <p className="mt-2 text-xs text-slate-500">O sistema sugere a quantidade pelo estoque mínimo, mas quem decide é o comprador. Os fornecedores veem a quantidade atualizada no link do pedido de cotação.</p>}
+      </form>
 
       {(aberta || cotacao.solicitacoes.length > 0) && (
         <div className="card mb-6">
@@ -253,6 +267,31 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                   <label className="rotulo">Justificativa (obrigatória se não for a recomendada)</label>
                   <input className="campo" name="justificativa" />
                 </div>
+              </div>
+              <div className="overflow-x-auto">
+                <label className="rotulo">Quantidade a comprar (você decide)</label>
+                <table className="tabela">
+                  <thead><tr><th>Item</th><th>Cotado</th><th>Proposta recomendada</th><th>Comprar</th></tr></thead>
+                  <tbody>
+                    {itens.map((i) => {
+                      const ic = melhor.itensCalculados.find((x) => x.necessidadeId === i.id);
+                      return (
+                        <tr key={i.id}>
+                          <td className="text-sm">{i.produto.nome}</td>
+                          <td className="whitespace-nowrap text-sm">{i.quantidade} {i.produto.unidade}</td>
+                          <td className="text-xs text-slate-500">
+                            {ic ? <>disponível {ic.quantidadeDisponivel} · mínimo {ic.quantidadeMinima}</> : "não possui"}
+                          </td>
+                          <td className="whitespace-nowrap">
+                            <input className="campo w-24 px-2 py-1" type="number" min={1} name={`comprar_${i.id}`} defaultValue={ic?.quantidadeCompra ?? i.quantidade} />
+                            <span className="ml-1 text-xs text-slate-500">{i.produto.unidade}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <p className="mt-1 text-xs text-slate-500">Itens que o fornecedor escolhido não possui são ignorados e voltam para Necessidades. A quantidade precisa respeitar o disponível e o mínimo do fornecedor.</p>
               </div>
               <button className="btn-sucesso">✔ Selecionar proposta e aprovar compra</button>
             </form>

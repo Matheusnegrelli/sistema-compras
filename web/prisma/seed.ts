@@ -72,7 +72,7 @@ async function main() {
       itens.push({
         produto,
         necessidade: await prisma.necessidadeCompra.create({
-          data: { produtoId: produto.id, quantidade: qtd, estoqueNoMomento: Math.floor(produto.estoqueMinimo * 0.6), estoqueMinimo: produto.estoqueMinimo, status: "ATENDIDA", origem: "AUTOMATICA", criadoEm: diasAtras(h.dias, 3), cotacaoId: cotacao.id },
+          data: { produtoId: produto.id, quantidade: qtd, quantidadeSugerida: qtd, quantidadeComprada: qtd, estoqueNoMomento: Math.floor(produto.estoqueMinimo * 0.6), estoqueMinimo: produto.estoqueMinimo, status: "ATENDIDA", origem: "AUTOMATICA", criadoEm: diasAtras(h.dias, 3), cotacaoId: cotacao.id },
         }),
       });
     }
