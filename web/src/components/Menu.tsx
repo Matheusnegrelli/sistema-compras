@@ -15,7 +15,7 @@ const ITENS = [
   { href: "/fornecedores", rotulo: "Fornecedores", icone: "🏭" },
   { href: "/integracao", rotulo: "Integração (API)", icone: "🔌" },
   { href: "/configuracoes", rotulo: "Configurações", icone: "⚖️" },
-  { href: "/usuarios", rotulo: "Usuários", icone: "👥", admin: true },
+  { href: "/usuarios", rotulo: "Usuários e acessos", icone: "👥", admin: true },
   { href: "/logs", rotulo: "Logs", icone: "🧾" },
 ];
 

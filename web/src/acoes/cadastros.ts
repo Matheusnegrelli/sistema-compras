@@ -90,7 +90,10 @@ export async function salvarUsuario(fd: FormData) {
   const perfil = texto(fd, "perfil") as "ADMIN" | "COMPRADOR" | "GESTOR";
   if (!nome || !email.includes("@")) falhar("/usuarios", "Informe nome e e-mail válidos");
   if (!["ADMIN", "COMPRADOR", "GESTOR"].includes(perfil)) falhar("/usuarios", "Perfil inválido");
-  if (!id && senha.length < 6) falhar("/usuarios", "A senha deve ter ao menos 6 caracteres");
+  if ((!id || senha) && senha.length < 6) falhar("/usuarios", "A senha deve ter ao menos 6 caracteres");
+  if (id === sessao.id && (perfil !== "ADMIN" || fd.get("ativo") !== "on")) {
+    falhar("/usuarios", "Você não pode bloquear o próprio acesso nem tirar o seu perfil de administrador");
+  }
   const duplicado = await prisma.usuario.findFirst({ where: { email, NOT: { id } } });
   if (duplicado) falhar("/usuarios", "E-mail já cadastrado");
 
@@ -98,7 +101,7 @@ export async function salvarUsuario(fd: FormData) {
   const usuario = id
     ? await prisma.usuario.update({ where: { id }, data: dados })
     : await prisma.usuario.create({ data: { ...dados, senhaHash: dados.senhaHash! } });
-  await registrarLog(sessao.id, id ? "USUARIO_ALTERADO" : "USUARIO_CRIADO", "Usuario", usuario.id, `${email} (${perfil})`);
+  await registrarLog(sessao.id, id ? "USUARIO_ALTERADO" : "USUARIO_CRIADO", "Usuario", usuario.id, `${email} (${perfil}${usuario.ativo ? "" : ", bloqueado"}${id && senha ? ", senha redefinida" : ""})`);
   revalidatePath("/usuarios");
   sucesso("/usuarios", `Usuário ${email} salvo`);
 }
