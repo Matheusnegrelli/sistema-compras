@@ -88,7 +88,7 @@ npm run build && npm start    # ou: npm run dev
 
 1. Crie uma conta em https://render.com entrando com o GitHub.
 2. Clique em **New > Blueprint**, escolha o repositório `sistema-compras` e confirme. O arquivo `render.yaml` cria o banco, a API de estoque e o sistema.
-3. Aguarde os três serviços ficarem "Live" e abra `https://provisa.onrender.com` (ou o endereço que o Render mostrar no serviço `provisa`).
+3. Aguarde os três serviços ficarem "Live" e abra o endereço que o Render mostrar no serviço `provisa` (a versão da banca está em `https://provisa-jub4.onrender.com`).
 4. Se o Render der outros endereços, ajuste `APP_URL` e `ESTOQUE_API_URL` em **provisa > Environment**.
 
 No plano gratuito os serviços "dormem" após 15 min sem uso: abra o site uns 2 minutos antes da apresentação.

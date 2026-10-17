@@ -39,7 +39,7 @@ services:
       - key: ESTOQUE_API_KEY
         value: chave-provisa-tcc
       - key: APP_URL
-        value: https://provisa.onrender.com
+        value: https://provisa-jub4.onrender.com
       - key: NOME_HOSPITAL
         value: Hospital Regional
       - key: SYNC_INTERVALO_MIN
