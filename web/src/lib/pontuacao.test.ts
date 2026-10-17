@@ -86,7 +86,7 @@ describe("classificarPropostas (cotação por categoria, vários itens)", () => 
     const parcial = ranking.find((r) => r.fornecedor === "Parcial")!;
     expect(parcial.notas.disponibilidade).toBe(0.5);
     expect(parcial.itensAtendidos).toBe(1);
-    expect(parcial.alertas).toContain("Não cotou Omeprazol");
+    expect(parcial.alertas).toContain("Não possui Omeprazol");
   });
 });
 

@@ -126,14 +126,15 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                   <div><label className="rotulo">Observação</label><input className="campo" name="observacao" /></div>
                 </div>
                 <table className="tabela">
-                  <thead><tr><th>Item</th><th>Preço unit. (R$)</th><th>Qtd. disponível</th><th>Qtd. mínima</th></tr></thead>
+                  <thead><tr><th>Item</th><th>Preço unit. (R$)</th><th>Qtd. disponível</th><th>Qtd. mínima</th><th>Não tenho</th></tr></thead>
                   <tbody>
                     {itens.map((i) => (
-                      <tr key={i.id}>
+                      <tr key={i.id} className="linha-item">
                         <td className="text-sm">{i.produto.nome} <span className="text-slate-400">({i.quantidade} {i.produto.unidade})</span></td>
-                        <td><input className="campo" name={`preco_${i.id}`} type="number" step="0.01" min="0.01" placeholder="não cotou" /></td>
+                        <td><input className="campo" name={`preco_${i.id}`} type="number" step="0.01" min="0.01" /></td>
                         <td><input className="campo" name={`disp_${i.id}`} type="number" min={0} defaultValue={i.quantidade} /></td>
                         <td><input className="campo" name={`min_${i.id}`} type="number" min={1} defaultValue={1} /></td>
+                        <td className="text-center"><label className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-xs text-slate-600"><input type="checkbox" name={`sem_${i.id}`} className="h-4 w-4 accent-red-600" /> Não tenho</label></td>
                       </tr>
                     ))}
                   </tbody>
@@ -215,7 +216,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                         <td className="text-sm">{i.produto.nome} <span className="text-slate-400">({i.quantidade} {i.produto.unidade})</span></td>
                         {precos.map((x, k) => (
                           <td key={k} className={x && x.precoUnitario === menor ? "font-semibold text-emerald-700" : ""}>
-                            {x ? <>{moeda(x.precoUnitario)}{x.quantidadeDisponivel < i.quantidade && <span className="block text-[10px] text-amber-700">só {x.quantidadeDisponivel}</span>}</> : <span className="text-slate-400">não cotou</span>}
+                            {x ? <>{moeda(x.precoUnitario)}{x.quantidadeDisponivel < i.quantidade && <span className="block text-[10px] text-amber-700">só {x.quantidadeDisponivel}</span>}</> : <span className="text-red-600">não possui</span>}
                           </td>
                         ))}
                       </tr>

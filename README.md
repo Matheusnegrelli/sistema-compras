@@ -53,7 +53,7 @@ Os itens em necessidade de compra são agrupados por **categoria** (Medicamento,
 | Disponibilidade | média por item de qtd. disponível ÷ qtd. necessária (máx. 1; item não cotado = 0) | 20% |
 | Histórico do fornecedor | nota (0 a 5) ÷ 5 | 10% |
 
-**Pontuação = Σ nota × peso** (0 a 100). Com um único item, as fórmulas são as mesmas do projeto. O gestor pode alterar os pesos em "Configurações". Itens que o fornecedor escolhido não cotou voltam para Necessidades e podem entrar em uma nova cotação. O sistema só recomenda: o comprador analisa e seleciona a proposta, e precisa justificar quando escolhe uma proposta diferente da 1ª colocada. No recebimento, a entrega é avaliada e a nota de histórico do fornecedor é recalculada (entrega atrasada perde 1 ponto), e a entrada do material é enviada para a API de estoque.
+**Pontuação = Σ nota × peso** (0 a 100). Com um único item, as fórmulas são as mesmas do projeto. O gestor pode alterar os pesos em "Configurações". No pedido de cotação, o fornecedor marca "Não tenho" nos itens que não possui; esses itens aparecem com o alerta "Não possui" no ranking. Itens que o fornecedor escolhido não possui voltam para Necessidades e podem entrar em uma nova cotação. O sistema só recomenda: o comprador analisa e seleciona a proposta, e precisa justificar quando escolhe uma proposta diferente da 1ª colocada. No recebimento, a entrega é avaliada e a nota de histórico do fornecedor é recalculada (entrega atrasada perde 1 ponto), e a entrada do material é enviada para a API de estoque.
 
 ## Como rodar
 

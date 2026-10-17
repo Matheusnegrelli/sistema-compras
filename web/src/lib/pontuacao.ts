@@ -95,7 +95,7 @@ export function classificarPropostas(
     for (const n of necessarios) {
       const item = porItem.get(n.necessidadeId);
       if (!item) {
-        alertas.push(`Não cotou ${n.produto}`);
+        alertas.push(`Não possui ${n.produto}`);
         continue;
       }
       custoProposta += item.precoUnitario * n.quantidade;

@@ -10,13 +10,15 @@ function valor(fd: FormData, campo: string) {
 
 /**
  * Lê do formulário o preço de cada item (campos preco_<id>, disp_<id>, min_<id>).
- * Item sem preço = fornecedor não cotou. Retorna erro em texto quando algo está inválido.
+ * O fornecedor marca "Não tenho" (sem_<id>) nos itens que não possui; os demais exigem preço.
+ * Retorna erro em texto quando algo está inválido.
  */
 export function lerItensDoFormulario(fd: FormData, itens: { id: number; quantidade: number; produto: { nome: string } }[]) {
   const lidos: ItemDigitado[] = [];
   for (const item of itens) {
+    if (fd.get(`sem_${item.id}`)) continue;
     const preco = valor(fd, `preco_${item.id}`);
-    if (Number.isNaN(preco)) continue;
+    if (Number.isNaN(preco)) return { erro: `Informe o preço de ${item.produto.nome} ou marque "Não tenho"` };
     if (!(preco > 0)) return { erro: `Preço inválido para ${item.produto.nome}` };
     const disponivel = valor(fd, `disp_${item.id}`);
     const minima = valor(fd, `min_${item.id}`);
@@ -28,7 +30,7 @@ export function lerItensDoFormulario(fd: FormData, itens: { id: number; quantida
       quantidadeMinima: Number.isInteger(minima) && minima > 0 ? minima : 1,
     });
   }
-  if (lidos.length === 0) return { erro: "Informe o preço de pelo menos um item" };
+  if (lidos.length === 0) return { erro: "Informe o preço de pelo menos um item (não é possível marcar \"Não tenho\" em todos)" };
   return { itens: lidos };
 }
 
