@@ -1,0 +1,50 @@
+# Publicação no Render (https://render.com) com um clique: New > Blueprint > este repositório.
+# Cria o banco PostgreSQL, a API de estoque simulada e o sistema web, já ligados entre si.
+databases:
+  - name: provisa-db
+    plan: free
+    databaseName: provisa
+    user: provisa
+
+services:
+  - type: web
+    name: provisa-api-estoque
+    runtime: node
+    plan: free
+    rootDir: api-estoque
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        value: chave-provisa-tcc
+
+  - type: web
+    name: provisa
+    runtime: node
+    plan: free
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    startCommand: npx prisma migrate deploy && npm run db:seed-se-vazio && npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: provisa-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      # Se o Render der outro endereço aos serviços, ajuste estas duas variáveis no painel
+      - key: ESTOQUE_API_URL
+        value: https://provisa-api-estoque.onrender.com
+      - key: ESTOQUE_API_KEY
+        value: chave-provisa-tcc
+      - key: APP_URL
+        value: https://provisa.onrender.com
+      - key: NOME_HOSPITAL
+        value: Hospital Regional
+      - key: SYNC_INTERVALO_MIN
+        value: "5"
+      - key: PORT
+        value: "3000"
+      - key: EMAIL_TESTE
+        sync: false
