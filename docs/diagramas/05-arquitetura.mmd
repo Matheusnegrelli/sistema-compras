@@ -1,0 +1,23 @@
+flowchart LR
+  subgraph Navegador
+    U[Comprador / Gestor] 
+    P[Fornecedor - portal sem login]
+  end
+  subgraph App["Aplicação web (Next.js 15 + React 19 + TypeScript)"]
+    UI[Páginas e componentes]
+    SA[Server Actions - regras de negócio]
+    ALG[Algoritmo de pontuação]
+    ROT[Rotinas automáticas: estoque e cotações]
+  end
+  DB[(PostgreSQL via Prisma)]
+  EST[API de estoque - Express :4000]
+  SMTP[Servidor de e-mail SMTP]
+  U --> UI --> SA
+  P --> UI
+  SA --> ALG
+  SA --> DB
+  ROT --> DB
+  ROT -- HTTP + x-api-key --> EST
+  SA -- HTTP + x-api-key --> EST
+  SA --> SMTP
+  ROT --> SMTP

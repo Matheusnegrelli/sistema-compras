@@ -1,0 +1,23 @@
+flowchart TD
+  A[Rotina lê o estoque pela API] --> B{Item abaixo do mínimo?}
+  B -- não --> A
+  B -- sim --> C[Gera necessidade com quantidade sugerida]
+  C --> D[Comprador revisa a quantidade]
+  D --> E[Agrupa os itens da categoria em uma cotação]
+  E --> F[Envia o pedido de cotação por e-mail com link exclusivo]
+  F --> G[Fornecedor responde: preço por item, prazo, pagamento ou 'não tenho']
+  G --> H{Todos responderam ou prazo venceu?}
+  H -- não, faltam 12 h --> L[Lembrete ao fornecedor] --> G
+  H -- sim --> I[Avisa o comprador: cotação pronta]
+  I --> J[Algoritmo classifica as propostas: preço, prazo, disponibilidade, histórico]
+  J --> K[Comprador analisa, simula pesos e seleciona a proposta]
+  K --> M{Escolheu a 1ª colocada?}
+  M -- não --> N[Justificativa obrigatória]
+  M -- sim --> O
+  N --> O[Decisão registrada com ranking e pesos]
+  O --> P[Pedido de compra ao fornecedor e aviso aos demais]
+  O --> Q[Resumo com valor e dados de pagamento ao comprador]
+  Q --> R[Comprador paga e registra o pagamento]
+  R --> S[Fornecedor é avisado e entrega]
+  S --> T[Recebimento: entrada no estoque pela API e nova nota do fornecedor]
+  O --> U[Itens não atendidos voltam para Necessidades]

@@ -6,6 +6,7 @@ import { carregarCotacao } from "@/lib/consultas";
 import { exigirSessao } from "@/lib/auth";
 import { Aviso, Cabecalho, Criticidade, Estrelas, Status, Vazio } from "@/components/ui";
 import { GraficoPontuacao } from "@/components/Graficos";
+import { SimuladorPesos } from "@/components/SimuladorPesos";
 import { data, dataHora, dias, moeda } from "@/lib/formato";
 
 const ROTULO_ORIGEM: Record<string, string> = { FORNECEDOR: "via link", SIMULADA: "simulada", MANUAL: "lançada", AUTOMATICA: "" };
@@ -86,7 +87,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
               <h2>Pedido de cotação aos fornecedores</h2>
               <p className="text-sm text-slate-500">
                 {cotacao.solicitacoes.length > 0
-                  ? <>Enviado por e-mail a {cotacao.solicitacoes.length} fornecedor(es) · {respondidas} responderam{semItens > 0 && <> ({semItens} sem os itens)</>} · prazo de resposta {dataHora(cotacao.prazoResposta)}</>
+                  ? <>Enviado por e-mail a {cotacao.solicitacoes.length} fornecedor(es) · {respondidas} responderam{semItens > 0 && <> ({semItens} sem os itens)</>} · prazo de resposta {dataHora(cotacao.prazoResposta)}{cotacao.avisoProntaEm && <> · pronta para análise desde {dataHora(cotacao.avisoProntaEm)}</>}</>
                   : "Nenhum pedido enviado ainda."}
               </p>
             </div>
@@ -118,7 +119,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                       <td className="text-xs">{s.fornecedor.email}</td>
                       <td className="text-xs">{dataHora(s.enviadoEm)}</td>
                       <td className="text-xs">{s.visualizadoEm ? dataHora(s.visualizadoEm) : "-"}</td>
-                      <td>{s.semItens ? <span className="text-xs font-medium text-red-600">✖ Não possui os itens</span> : s.respondidoEm ? <span className="text-xs font-medium text-emerald-700">✔ {dataHora(s.respondidoEm)}</span> : <span className="text-xs text-amber-700">Aguardando</span>}</td>
+                      <td>{s.lembreteEm && !s.respondidoEm && <span className="mr-1 text-[11px] text-slate-400" title={`Lembrete enviado em ${dataHora(s.lembreteEm)}`}>🔔</span>}{s.semItens ? <span className="text-xs font-medium text-red-600">✖ Não possui os itens</span> : s.respondidoEm ? <span className="text-xs font-medium text-emerald-700">✔ {dataHora(s.respondidoEm)}</span> : <span className="text-xs text-amber-700">Aguardando</span>}</td>
                       <td><a className="link text-xs" href={`/responder/${s.token}`} target="_blank" rel="noreferrer" title="Abre a página que o fornecedor recebe por e-mail">abrir como fornecedor ↗</a></td>
                     </tr>
                   ))}
@@ -258,6 +259,14 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
           </>
         )}
       </div>
+
+      {ranking.length > 1 && (
+        <div className="card mb-6">
+          <h2 className="mb-1">Simulação de pesos (e se?)</h2>
+          <p className="mb-4 text-sm text-slate-500">Mude a importância de cada critério e veja como o ranking reage. Serve para conferir se a recomendação é robusta antes de decidir.</p>
+          <SimuladorPesos entradas={dados.entradas} necessarios={dados.necessarios} pesosAtuais={pesosExibidos} />
+        </div>
+      )}
 
       {aberta && ranking.length > 0 && (
         <div className="card mb-6">

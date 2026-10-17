@@ -106,3 +106,29 @@ describe("auxiliares", () => {
     expect(notaDaEntrega(5, false)).toBe(4);
   });
 });
+
+describe("análise de sensibilidade dos pesos", () => {
+  const propostas = [
+    umItem(1, "Barato", { preco: 8, prazo: 15, nota: 3 }),
+    umItem(2, "Rápido", { preco: 11, prazo: 2, nota: 4 }),
+    umItem(3, "Confiável", { preco: 10, prazo: 8, nota: 5 }),
+  ];
+
+  it("a recomendação muda conforme a prioridade do hospital", () => {
+    expect(classificarPropostas(propostas, ITEM, { preco: 80, prazo: 10, disponibilidade: 5, historico: 5 })[0].fornecedor).toBe("Barato");
+    expect(classificarPropostas(propostas, ITEM, { preco: 10, prazo: 80, disponibilidade: 5, historico: 5 })[0].fornecedor).toBe("Rápido");
+  });
+
+  it("a pontuação não depende da escala dos pesos, só da proporção", () => {
+    const a = classificarPropostas(propostas, ITEM, { preco: 4, prazo: 3, disponibilidade: 2, historico: 1 });
+    const b = classificarPropostas(propostas, ITEM, { preco: 40, prazo: 30, disponibilidade: 20, historico: 10 });
+    expect(a.map((r) => r.pontuacao)).toEqual(b.map((r) => r.pontuacao));
+  });
+
+  it("a soma das contribuições por critério é a pontuação final", () => {
+    for (const r of classificarPropostas(propostas, ITEM)) {
+      const soma = Object.values(r.contribuicao).reduce((x, y) => x + y, 0);
+      expect(Math.abs(soma - r.pontuacao)).toBeLessThan(0.11);
+    }
+  });
+});

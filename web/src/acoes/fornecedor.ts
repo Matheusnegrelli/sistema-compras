@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { registrarLog } from "@/lib/log";
 import { lerItensDoFormulario, registrarSemItens, salvarProposta } from "@/lib/propostas";
 import { formaValida } from "@/lib/pagamento";
+import { verificarCotacoes } from "@/lib/rotina-cotacoes";
 import { falhar, numero, sucesso, texto } from "./util";
 
 /** Resposta do fornecedor pelo link exclusivo do pedido de cotação (não exige login). */
@@ -21,6 +22,7 @@ export async function responderCotacao(fd: FormData) {
   if (lido.erro || !lido.itens) falhar(volta, lido.erro ?? "Itens inválidos");
   if (lido.nenhum) {
     await registrarSemItens(s.cotacaoId, s.fornecedorId);
+    await verificarCotacoes();
     await registrarLog(null, "FORNECEDOR_SEM_ITENS", "Cotacao", s.cotacaoId, `${s.fornecedor.nome} não possui nenhum item da cotação #${s.cotacaoId}`);
     sucesso(volta, "Resposta registrada: você não possui nenhum dos itens. Obrigado por responder!");
   }
@@ -36,5 +38,6 @@ export async function responderCotacao(fd: FormData) {
   await prisma.solicitacaoCotacao.update({ where: { id: s.id }, data: { respondidoEm: new Date() } });
   await registrarLog(null, primeira ? "PROPOSTA_FORNECEDOR" : "PROPOSTA_FORNECEDOR_ALTERADA", "Proposta", p.id,
     `${s.fornecedor.nome} respondeu a cotação #${s.cotacaoId}: ${lido.itens.length} item(ns), ${prazo} dias`);
+  await verificarCotacoes();
   sucesso(volta, primeira ? "Proposta enviada com sucesso. Obrigado!" : "Proposta atualizada com sucesso.");
 }

@@ -1,0 +1,31 @@
+flowchart LR
+  comprador([👤 Comprador])
+  gestor([👤 Gestor])
+  admin([👤 Administrador])
+  subgraph Provisa
+    direction TB
+    UC2(Definir quantidade a comprar)
+    UC3(Gerar cotação por categoria)
+    UC5(Comparar e classificar propostas)
+    UC6(Simular pesos dos critérios)
+    UC7(Selecionar proposta e aprovar)
+    UC8(Enviar pedido de compra)
+    UC9(Registrar pagamento)
+    UC10(Registrar recebimento e avaliar)
+    UC12(Cadastrar produtos, setores e fornecedores)
+    UC14(Consultar dashboard, histórico e avaliação)
+    UC11(Configurar pesos e automação)
+    UC13(Gerenciar usuários)
+    UC1(Consultar estoque e gerar alertas)
+    UC4(Responder cotação pelo link)
+  end
+  fornecedor([🏭 Fornecedor])
+  api([🔌 API de estoque])
+  comprador --- UC2 & UC3 & UC5 & UC6 & UC7 & UC9 & UC10 & UC12 & UC14
+  gestor --- UC11 & UC14
+  admin --- UC13
+  UC7 -. inclui .-> UC8
+  UC1 --- api
+  UC10 --- api
+  UC4 --- fornecedor
+  UC8 --- fornecedor

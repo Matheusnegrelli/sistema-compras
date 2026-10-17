@@ -13,6 +13,7 @@ import { classificarPropostas, notaDaEntrega, quantidadeCompra } from "@/lib/pon
 import { obterPesos, paraAlgoritmo } from "@/lib/consultas";
 import { enviarPedidoCompra, enviarResumoAoComprador, avisarPagamentoAoFornecedor } from "@/lib/pedido";
 import { formaValida } from "@/lib/pagamento";
+import { verificarCotacoes } from "@/lib/rotina-cotacoes";
 import { lerItensDoFormulario, registrarSemItens, salvarProposta } from "@/lib/propostas";
 import { abrirCotacao, enviarSolicitacoes, obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 import { falhar, numero, sucesso, texto } from "./util";
@@ -22,6 +23,7 @@ export async function sincronizarAgora(fd: FormData) {
   const sessao = await exigirSessao();
   const volta = texto(fd, "volta") || "/necessidades";
   const r = await sincronizarEstoque("MANUAL", sessao.id);
+  await verificarCotacoes();
   revalidatePath("/", "layout");
   if (!r.sucesso) falhar(volta, `Falha ao consultar a API de estoque: ${r.erro}`);
   const envio = r.cotacoesEnviadas > 0 ? `, ${r.cotacoesEnviadas} cotação(ões) enviada(s) aos fornecedores` : "";
@@ -153,6 +155,7 @@ export async function adicionarProposta(fd: FormData) {
   if (lido.nenhum) {
     await registrarSemItens(cotacaoId, fornecedorId);
     await registrarLog(sessao.id, "FORNECEDOR_SEM_ITENS", "Cotacao", cotacaoId, `Fornecedor #${fornecedorId} não possui nenhum item`);
+    await verificarCotacoes();
     sucesso(volta, "Registrado: o fornecedor não possui nenhum dos itens");
   }
   if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Prazo de entrega inválido");
@@ -161,6 +164,7 @@ export async function adicionarProposta(fd: FormData) {
   const p = await salvarProposta({ cotacaoId, fornecedorId, prazoEntregaDias: prazo, formaPagamento: forma, observacao: texto(fd, "observacao") || null, origem: "MANUAL", itens: lido.itens });
   await prisma.solicitacaoCotacao.updateMany({ where: { cotacaoId, fornecedorId, respondidoEm: null }, data: { respondidoEm: new Date() } });
   await registrarLog(sessao.id, "PROPOSTA_REGISTRADA", "Proposta", p.id, `Cotação #${cotacaoId}, ${lido.itens.length} item(ns), ${prazo} dias`);
+  await verificarCotacoes();
   sucesso(volta, "Proposta registrada");
 }
 
@@ -198,6 +202,7 @@ export async function simularPropostasCotacao(fd: FormData) {
     where: { cotacaoId, fornecedorId: { in: propostas.map((p) => p.fornecedorId) } },
     data: { respondidoEm: new Date(), visualizadoEm: new Date() },
   });
+  await verificarCotacoes();
   await registrarLog(sessao.id, "PROPOSTAS_SIMULADAS", "Cotacao", cotacaoId, `${propostas.length} fornecedores`);
   sucesso(`/cotacoes/${cotacaoId}`, `${propostas.length} proposta(s) simulada(s) recebida(s) dos fornecedores`);
 }

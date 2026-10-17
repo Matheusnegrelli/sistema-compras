@@ -44,7 +44,7 @@ export async function carregarCotacao(id: number) {
   const pesos = await obterPesos();
   const { necessarios, entradas } = paraAlgoritmo(cotacao.itens, cotacao.propostas);
   const ranking = classificarPropostas(entradas, necessarios, pesos);
-  return { cotacao, ranking, pesos, necessarios };
+  return { cotacao, ranking, pesos, necessarios, entradas };
 }
 
 export async function listarSetores() {

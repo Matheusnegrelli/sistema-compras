@@ -144,6 +144,8 @@ model Cotacao {
   criadoEm      DateTime             @default(now())
   /// Data limite para os fornecedores responderem pelo link
   prazoResposta DateTime?
+  /// Quando o comprador foi avisado de que a cotação está pronta para análise
+  avisoProntaEm DateTime?
   encerradaEm   DateTime?
   propostas     Proposta[]
   solicitacoes  SolicitacaoCotacao[]
@@ -163,6 +165,8 @@ model SolicitacaoCotacao {
   respondidoEm  DateTime?
   /// Fornecedor respondeu que não possui nenhum dos itens da cotação
   semItens      Boolean        @default(false)
+  /// Lembrete enviado ao fornecedor que ainda não respondeu, perto do prazo
+  lembreteEm    DateTime?
   emails        EmailEnviado[]
 
   @@unique([cotacaoId, fornecedorId])

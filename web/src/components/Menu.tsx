@@ -9,6 +9,7 @@ const ITENS = [
   { href: "/cotacoes", rotulo: "Cotações", icone: "📝" },
   { href: "/emails", rotulo: "E-mails enviados", icone: "✉️" },
   { href: "/historico", rotulo: "Histórico e relatórios", icone: "📚" },
+  { href: "/avaliacao", rotulo: "Avaliação (H1 a H4)", icone: "🎯" },
   { href: "/setores", rotulo: "Setores do hospital", icone: "🏥" },
   { href: "/produtos", rotulo: "Produtos", icone: "📦" },
   { href: "/fornecedores", rotulo: "Fornecedores", icone: "🏭" },

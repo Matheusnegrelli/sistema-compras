@@ -1,0 +1,23 @@
+erDiagram
+  SETOR ||--o{ PRODUTO : possui
+  PRODUTO ||--o{ NECESSIDADE_COMPRA : gera
+  COTACAO ||--o{ NECESSIDADE_COMPRA : agrupa
+  COTACAO ||--o{ SOLICITACAO_COTACAO : envia
+  FORNECEDOR ||--o{ SOLICITACAO_COTACAO : recebe
+  SOLICITACAO_COTACAO ||--o{ EMAIL_ENVIADO : registra
+  COTACAO ||--o{ PROPOSTA : recebe
+  FORNECEDOR ||--o{ PROPOSTA : envia
+  PROPOSTA ||--o{ ITEM_PROPOSTA : contem
+  NECESSIDADE_COMPRA ||--o{ ITEM_PROPOSTA : cotada_em
+  COTACAO ||--o| DECISAO : resulta
+  PROPOSTA ||--o{ DECISAO : escolhida
+  USUARIO ||--o{ DECISAO : aprova
+  USUARIO ||--o{ COTACAO : abre
+  USUARIO ||--o{ LOG : executa
+  PRODUTO { string sku string nome string categoria int estoqueAtual int estoqueMinimo enum criticidade }
+  NECESSIDADE_COMPRA { int quantidade int quantidadeSugerida int quantidadeComprada enum status }
+  COTACAO { string categoria enum status datetime prazoResposta }
+  FORNECEDOR { string nome string cnpj string email float notaHistorico string dadosPagamento }
+  PROPOSTA { int prazoEntregaDias string formaPagamento enum origem }
+  ITEM_PROPOSTA { float precoUnitario int quantidadeDisponivel int quantidadeMinima }
+  DECISAO { float pontuacao json ranking json pesos bool seguiuRecomendacao string justificativa datetime pagoEm datetime recebidoEm }

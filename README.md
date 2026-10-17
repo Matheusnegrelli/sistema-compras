@@ -133,3 +133,10 @@ web/src/app/(sistema)/           telas
 ## Limitações (seção 6.2 do projeto)
 
 O protótipo não realiza pagamentos, emissão de notas fiscais, integração financeira, controle contábil ou aprovação automática. Os fornecedores e os dados são fictícios; o envio real de e-mail depende de um servidor SMTP configurado.
+
+## Avaliação, simulação e documentação
+
+- **Simulação de pesos (e se?)**: na tela da cotação, o comprador altera os pesos dos critérios (ou escolhe um cenário: preço, urgência, item crítico, confiabilidade) e vê como o ranking muda, sem alterar a configuração.
+- **Avaliação (H1 a H4)**: menu "Avaliação" compara o processo manual com o automatizado pelas hipóteses do projeto, com os tempos e números medidos no sistema. Os tempos do processo manual são referências editáveis na própria tela.
+- **Lembretes automáticos**: o fornecedor que não respondeu recebe um lembrete 12 h antes do prazo, e o comprador é avisado por e-mail quando a cotação está pronta para análise (todos responderam ou o prazo venceu).
+- **Documentação**: `docs/documentacao-tcc.md` traz a rastreabilidade dos requisitos, o algoritmo, os testes e os diagramas em `docs/diagramas/`.

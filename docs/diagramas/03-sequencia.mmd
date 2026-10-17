@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  participant API as API de estoque
+  participant S as Provisa
+  participant C as Comprador
+  participant F as Fornecedor
+  S->>API: GET /api/v1/estoque (x-api-key)
+  API-->>S: saldos de estoque
+  S->>S: detecta itens abaixo do mínimo e cria necessidades
+  C->>S: gera a cotação da categoria
+  S->>F: e-mail com o pedido de cotação e link exclusivo
+  F->>S: proposta (preço por item, prazo, pagamento)
+  S->>C: e-mail "cotação pronta para análise"
+  S->>S: classifica as propostas (pontuação ponderada)
+  C->>S: seleciona a proposta e a quantidade
+  S->>F: pedido de compra
+  S->>C: resumo da compra e dados para pagamento
+  C->>S: registra o pagamento
+  S->>F: pagamento confirmado, seguir com a entrega
+  C->>S: registra o recebimento e avalia
+  S->>API: POST /api/v1/estoque/:sku/movimentos (entrada)
