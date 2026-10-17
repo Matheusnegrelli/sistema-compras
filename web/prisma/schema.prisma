@@ -55,6 +55,9 @@ model Usuario {
   perfil    Perfil    @default(COMPRADOR)
   ativo     Boolean   @default(true)
   criadoEm  DateTime  @default(now())
+  /// Proteção contra tentativa e erro de senha: após 5 erros seguidos o login fica travado por 15 minutos
+  tentativasFalhas Int       @default(0)
+  travadoAte       DateTime?
   cotacoes  Cotacao[]
   decisoes  Decisao[]
   logs      Log[]

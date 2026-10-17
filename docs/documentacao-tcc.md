@@ -59,7 +59,7 @@ Os arquivos `.mmd` ao lado de cada imagem são o código-fonte em Mermaid (podem
 | RNF06 | Testes com API simulada | API de estoque em Express com dados fictícios do hospital e simulação de consumo |
 | RNF07 | Relatórios e tabelas comparativas | Comparativo, matriz de preços por item, relatório PDF e exportação CSV |
 
-Segurança: senhas com hash bcrypt, sessão em cookie assinado (JWT) e conferida no banco a cada acesso, chave de API para a integração de estoque e link de resposta do fornecedor com token aleatório de 192 bits.
+Segurança: senhas com hash bcrypt, bloqueio do login por 15 minutos após 5 senhas erradas seguidas (com registro em log e desbloqueio pelo administrador), sessão em cookie assinado (JWT), `httpOnly` e somente HTTPS no ambiente publicado, conferida no banco a cada acesso, controle de usuários e perfis pelo administrador, dependências sem vulnerabilidades conhecidas (`npm audit`), chave de API para a integração de estoque e link de resposta do fornecedor com token aleatório de 192 bits.
 
 ## 4. Algoritmo de pontuação
 

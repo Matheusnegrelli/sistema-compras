@@ -97,7 +97,8 @@ export async function salvarUsuario(fd: FormData) {
   const duplicado = await prisma.usuario.findFirst({ where: { email, NOT: { id } } });
   if (duplicado) falhar("/usuarios", "E-mail já cadastrado");
 
-  const dados = { nome, email, perfil, ativo: id ? fd.get("ativo") === "on" : true, ...(senha ? { senhaHash: await bcrypt.hash(senha, 10) } : {}) };
+  // Salvar pelo administrador também destrava quem errou a senha várias vezes
+  const dados = { nome, email, perfil, ativo: id ? fd.get("ativo") === "on" : true, tentativasFalhas: 0, travadoAte: null, ...(senha ? { senhaHash: await bcrypt.hash(senha, 10) } : {}) };
   const usuario = id
     ? await prisma.usuario.update({ where: { id }, data: dados })
     : await prisma.usuario.create({ data: { ...dados, senhaHash: dados.senhaHash! } });

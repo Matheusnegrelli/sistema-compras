@@ -1,9 +1,9 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import { prisma } from "./db";
 
 type Email = { para: string; assunto: string; corpo: string; solicitacaoId?: number };
 
-let transporte: nodemailer.Transporter | null | undefined;
+let transporte: Transporter | null | undefined;
 
 /** Usa o servidor SMTP do .env; sem SMTP_HOST o sistema roda em modo demonstração (só caixa de saída). */
 function obterTransporte() {

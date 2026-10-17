@@ -48,7 +48,10 @@ export default async function Usuarios({ searchParams }: { searchParams: Promise
                   <td className="font-medium">{u.nome}{voce && <span className="ml-1 text-xs text-slate-500">(você)</span>}</td>
                   <td>{u.email}</td>
                   <td><Status valor={u.perfil} /></td>
-                  <td>{u.ativo ? <span className="text-emerald-700">✔ Liberado</span> : <span className="text-red-600">✖ Bloqueado</span>}</td>
+                  <td>
+                    {u.ativo ? <span className="text-emerald-700">✔ Liberado</span> : <span className="text-red-600">✖ Bloqueado</span>}
+                    {u.travadoAte && u.travadoAte > new Date() && <span className="block text-xs text-amber-700">🔒 senha errada várias vezes, travado até {dataHora(u.travadoAte)} (salvar destrava)</span>}
+                  </td>
                   <td className="text-xs">{dataHora(u.criadoEm)}</td>
                   <td>
                     <details className="group">
