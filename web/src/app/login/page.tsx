@@ -12,18 +12,14 @@ export default function Login({ searchParams }: { searchParams: Promise<{ erro?:
         <form action={entrar} className="space-y-4">
           <div>
             <label className="rotulo" htmlFor="email">E-mail</label>
-            <input className="campo" id="email" name="email" type="email" required defaultValue="comprador@provisa.com" />
+            <input className="campo" id="email" name="email" type="email" required autoComplete="username" autoFocus />
           </div>
           <div>
             <label className="rotulo" htmlFor="senha">Senha</label>
-            <input className="campo" id="senha" name="senha" type="password" required defaultValue="123456" />
+            <input className="campo" id="senha" name="senha" type="password" required autoComplete="current-password" />
           </div>
           <button className="btn-primario w-full">Entrar</button>
         </form>
-        <div className="mt-6 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-          <p className="font-medium text-slate-600">Usuários de demonstração (senha 123456)</p>
-          <p>admin@provisa.com · gestor@provisa.com · comprador@provisa.com</p>
-        </div>
       </div>
     </div>
   );
