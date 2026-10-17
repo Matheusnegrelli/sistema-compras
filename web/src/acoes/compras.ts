@@ -11,7 +11,7 @@ import { registrarEntrada, simularConsumo } from "@/lib/estoque-api";
 import { simularPropostas } from "@/lib/simulacao";
 import { classificarPropostas, notaDaEntrega, quantidadeCompra } from "@/lib/pontuacao";
 import { obterPesos, paraAlgoritmo } from "@/lib/consultas";
-import { lerItensDoFormulario, salvarProposta } from "@/lib/propostas";
+import { lerItensDoFormulario, registrarSemItens, salvarProposta } from "@/lib/propostas";
 import { abrirCotacao, enviarSolicitacoes, obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 import { falhar, numero, sucesso, texto } from "./util";
 
@@ -124,9 +124,14 @@ export async function adicionarProposta(fd: FormData) {
   const fornecedorId = Number(fd.get("fornecedorId"));
   const prazo = numero(fd, "prazoEntregaDias");
   if (!fornecedorId) falhar(volta, "Selecione o fornecedor");
-  if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Prazo de entrega inválido");
   const lido = lerItensDoFormulario(fd, c.itens);
   if (lido.erro || !lido.itens) falhar(volta, lido.erro ?? "Itens inválidos");
+  if (lido.nenhum) {
+    await registrarSemItens(cotacaoId, fornecedorId);
+    await registrarLog(sessao.id, "FORNECEDOR_SEM_ITENS", "Cotacao", cotacaoId, `Fornecedor #${fornecedorId} não possui nenhum item`);
+    sucesso(volta, "Registrado: o fornecedor não possui nenhum dos itens");
+  }
+  if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Prazo de entrega inválido");
   const p = await salvarProposta({ cotacaoId, fornecedorId, prazoEntregaDias: prazo, observacao: texto(fd, "observacao") || null, origem: "MANUAL", itens: lido.itens });
   await prisma.solicitacaoCotacao.updateMany({ where: { cotacaoId, fornecedorId, respondidoEm: null }, data: { respondidoEm: new Date() } });
   await registrarLog(sessao.id, "PROPOSTA_REGISTRADA", "Proposta", p.id, `Cotação #${cotacaoId}, ${lido.itens.length} item(ns), ${prazo} dias`);
@@ -150,8 +155,11 @@ export async function simularPropostasCotacao(fd: FormData) {
   const c = await cotacaoAberta(cotacaoId);
   const pendentes = await prisma.solicitacaoCotacao.findMany({ where: { cotacaoId, respondidoEm: null }, include: { fornecedor: true } });
   // Sem pedido enviado, simula todos os fornecedores ativos que ainda não responderam
-  const jaResponderam = await prisma.proposta.findMany({ where: { cotacaoId }, select: { fornecedorId: true } });
-  const fornecedores = (await prisma.solicitacaoCotacao.count({ where: { cotacaoId } })) > 0
+  const jaResponderam = [
+    ...(await prisma.proposta.findMany({ where: { cotacaoId }, select: { fornecedorId: true } })),
+    ...(await prisma.solicitacaoCotacao.findMany({ where: { cotacaoId, semItens: true }, select: { fornecedorId: true } })),
+  ];
+  const fornecedores = (await prisma.solicitacaoCotacao.count({ where: { cotacaoId, semItens: false } })) > 0
     ? pendentes.map((s) => s.fornecedor)
     : await prisma.fornecedor.findMany({ where: { ativo: true, id: { notIn: jaResponderam.map((p) => p.fornecedorId) } } });
   if (fornecedores.length === 0) falhar(`/cotacoes/${cotacaoId}`, "Todos os fornecedores convidados já responderam");

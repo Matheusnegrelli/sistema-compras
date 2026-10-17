@@ -60,11 +60,15 @@ export default async function Responder({ params, searchParams }: { params: Prom
         <div className="card text-sm text-slate-600">
           {cotacao.status !== "ABERTA" ? "Esta cotação já foi encerrada pelo hospital." : "O prazo para responder esta cotação terminou."}
           {proposta && <> Sua proposta foi registrada com entrega em {proposta.prazoEntregaDias} dia(s).</>}
+          {s.semItens && <> Você respondeu que não possui nenhum dos itens.</>}
         </div>
       ) : (
         <form action={responderCotacao} className="card space-y-4">
           <input type="hidden" name="token" value={s.token} />
           <h2>{proposta ? "Sua proposta (você pode alterar até o prazo)" : "Enviar proposta"}</h2>
+          {s.semItens && (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Você informou que não possui nenhum destes itens. Se passar a ter algum, pode enviar a proposta abaixo até o prazo.</p>
+          )}
           <p className="text-sm text-slate-500">Informe o preço de cada item. Se você não tiver algum deles, marque "Não tenho" na linha do item.</p>
           <div className="overflow-x-auto">
             <table className="tabela">
@@ -95,7 +99,12 @@ export default async function Responder({ params, searchParams }: { params: Prom
               Valor da sua proposta atual: {moeda(proposta.itens.reduce((a, i) => a + i.precoUnitario * (cotacao.itens.find((x) => x.id === i.necessidadeId)?.quantidade ?? 0), 0))}
             </p>
           )}
-          <button className="btn-primario w-full sm:w-auto">{proposta ? "Atualizar proposta" : "Enviar proposta"}</button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button className="btn-primario w-full sm:w-auto">{proposta ? "Atualizar proposta" : "Enviar proposta"}</button>
+            {!s.semItens && (
+              <button className="btn-perigo w-full sm:w-auto" name="nenhum" value="1" formNoValidate>Não tenho nenhum destes itens</button>
+            )}
+          </div>
           <p className="text-xs text-slate-500">As propostas são comparadas por preço, prazo, disponibilidade e histórico de entregas. A escolha final é do comprador do hospital.</p>
         </form>
       )}

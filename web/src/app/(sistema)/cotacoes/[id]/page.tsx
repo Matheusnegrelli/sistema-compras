@@ -30,6 +30,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
   const melhor = ranking[0];
   const origens = new Map(cotacao.propostas.map((p) => [p.id, ROTULO_ORIGEM[p.origem]]));
   const respondidas = cotacao.solicitacoes.filter((s) => s.respondidoEm).length;
+  const semItens = cotacao.solicitacoes.filter((s) => s.semItens).length;
 
   return (
     <div>
@@ -69,7 +70,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
               <h2>Pedido de cotação aos fornecedores</h2>
               <p className="text-sm text-slate-500">
                 {cotacao.solicitacoes.length > 0
-                  ? <>Enviado por e-mail a {cotacao.solicitacoes.length} fornecedor(es) · {respondidas} responderam · prazo de resposta {dataHora(cotacao.prazoResposta)}</>
+                  ? <>Enviado por e-mail a {cotacao.solicitacoes.length} fornecedor(es) · {respondidas} responderam{semItens > 0 && <> ({semItens} sem os itens)</>} · prazo de resposta {dataHora(cotacao.prazoResposta)}</>
                   : "Nenhum pedido enviado ainda."}
               </p>
             </div>
@@ -101,7 +102,7 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                       <td className="text-xs">{s.fornecedor.email}</td>
                       <td className="text-xs">{dataHora(s.enviadoEm)}</td>
                       <td className="text-xs">{s.visualizadoEm ? dataHora(s.visualizadoEm) : "-"}</td>
-                      <td>{s.respondidoEm ? <span className="text-xs font-medium text-emerald-700">✔ {dataHora(s.respondidoEm)}</span> : <span className="text-xs text-amber-700">Aguardando</span>}</td>
+                      <td>{s.semItens ? <span className="text-xs font-medium text-red-600">✖ Não possui os itens</span> : s.respondidoEm ? <span className="text-xs font-medium text-emerald-700">✔ {dataHora(s.respondidoEm)}</span> : <span className="text-xs text-amber-700">Aguardando</span>}</td>
                       <td><a className="link text-xs" href={`/responder/${s.token}`} target="_blank" rel="noreferrer" title="Abre a página que o fornecedor recebe por e-mail">abrir como fornecedor ↗</a></td>
                     </tr>
                   ))}
@@ -139,7 +140,10 @@ export default async function Cotacao({ params, searchParams }: { params: Promis
                     ))}
                   </tbody>
                 </table>
-                <button className="btn-secundario">Salvar proposta</button>
+                <div className="flex flex-wrap gap-2">
+                  <button className="btn-secundario">Salvar proposta</button>
+                  <button className="btn-perigo" name="nenhum" value="1" formNoValidate>Fornecedor não tem nenhum item</button>
+                </div>
               </form>
             </details>
           )}

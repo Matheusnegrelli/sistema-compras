@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { registrarLog } from "@/lib/log";
-import { lerItensDoFormulario, salvarProposta } from "@/lib/propostas";
+import { lerItensDoFormulario, registrarSemItens, salvarProposta } from "@/lib/propostas";
 import { falhar, numero, sucesso, texto } from "./util";
 
 /** Resposta do fornecedor pelo link exclusivo do pedido de cotação (não exige login). */
@@ -16,10 +16,15 @@ export async function responderCotacao(fd: FormData) {
   if (!s) falhar(volta, "Link de cotação inválido");
   if (s.cotacao.status !== "ABERTA") falhar(volta, "Esta cotação já foi encerrada pelo hospital");
   if (s.cotacao.prazoResposta && s.cotacao.prazoResposta < new Date()) falhar(volta, "O prazo para responder esta cotação terminou");
-  const prazo = numero(fd, "prazoEntregaDias");
-  if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Informe o prazo de entrega em dias");
   const lido = lerItensDoFormulario(fd, s.cotacao.itens.filter((i) => i.status === "EM_COTACAO"));
   if (lido.erro || !lido.itens) falhar(volta, lido.erro ?? "Itens inválidos");
+  if (lido.nenhum) {
+    await registrarSemItens(s.cotacaoId, s.fornecedorId);
+    await registrarLog(null, "FORNECEDOR_SEM_ITENS", "Cotacao", s.cotacaoId, `${s.fornecedor.nome} não possui nenhum item da cotação #${s.cotacaoId}`);
+    sucesso(volta, "Resposta registrada: você não possui nenhum dos itens. Obrigado por responder!");
+  }
+  const prazo = numero(fd, "prazoEntregaDias");
+  if (!Number.isInteger(prazo) || prazo < 0) falhar(volta, "Informe o prazo de entrega em dias");
   const p = await salvarProposta({
     cotacaoId: s.cotacaoId, fornecedorId: s.fornecedorId, prazoEntregaDias: prazo,
     observacao: texto(fd, "observacao") || null, origem: "FORNECEDOR", itens: lido.itens,

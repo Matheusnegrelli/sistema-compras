@@ -154,6 +154,8 @@ model SolicitacaoCotacao {
   enviadoEm     DateTime       @default(now())
   visualizadoEm DateTime?
   respondidoEm  DateTime?
+  /// Fornecedor respondeu que não possui nenhum dos itens da cotação
+  semItens      Boolean        @default(false)
   emails        EmailEnviado[]
 
   @@unique([cotacaoId, fornecedorId])
