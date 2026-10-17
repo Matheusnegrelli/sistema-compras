@@ -81,6 +81,19 @@ async function entregar(id: number, m: Mensagem) {
   }
 }
 
+function montarMensagem(para: string, assunto: string, corpo: string, responderPara: string | null | undefined, anexos: Anexo[]): Mensagem {
+  // EMAIL_TESTE desvia todos os envios para um único endereço (apresentação sem contatar empresas reais)
+  const teste = process.env.EMAIL_TESTE;
+  return {
+    para: teste || para,
+    assunto: teste ? `[para ${para}] ${assunto}` : assunto,
+    texto: corpo,
+    html: emailHtml(assunto, corpo, NOME_HOSPITAL),
+    responderPara: responderPara || undefined,
+    anexos,
+  };
+}
+
 /**
  * Registra o e-mail na caixa de saída do sistema e envia em segundo plano, para a tela
  * responder na hora mesmo quando o servidor de e-mail demora (o status muda para Enviado ou Falhou).
@@ -95,17 +108,34 @@ export async function enviarEmail({ para, assunto, corpo, solicitacaoId, respond
       anexo: anexos.map((a) => a.nome).join(", ") || null,
     },
   });
-  if (real) {
-    // EMAIL_TESTE desvia todos os envios para um único endereço (apresentação sem contatar empresas reais)
-    const teste = process.env.EMAIL_TESTE;
-    void entregar(registro.id, {
-      para: teste || para,
-      assunto: teste ? `[para ${para}] ${assunto}` : assunto,
-      texto: corpo,
-      html: emailHtml(assunto, corpo, NOME_HOSPITAL),
-      responderPara: responderPara || undefined,
-      anexos,
-    });
-  }
+  if (real) void entregar(registro.id, montarMensagem(para, assunto, corpo, responderPara, anexos));
   return registro;
+}
+
+/** Envia de novo um e-mail da caixa de saída (o PDF do pedido de compra é gerado outra vez). */
+export async function reenviarEmail(id: number) {
+  if (!emailReal()) throw new Error("Nenhum serviço de e-mail configurado (modo demonstração)");
+  const e = await prisma.emailEnviado.findUniqueOrThrow({ where: { id } });
+  const anexos: Anexo[] = [];
+  const pedido = e.anexo?.match(/pedido-de-compra-(\d+)\.pdf/);
+  if (pedido) {
+    const { gerarPedidoPdf } = await import("./pedido-pdf");
+    const pdf = await gerarPedidoPdf(Number(pedido[1]));
+    if (pdf) anexos.push({ nome: pedido[0], conteudo: pdf });
+  }
+  await prisma.emailEnviado.update({ where: { id }, data: { status: "ENVIANDO", erro: null } });
+  await entregar(id, montarMensagem(e.para, e.assunto, e.corpo, e.responderPara, anexos));
+  return prisma.emailEnviado.findUniqueOrThrow({ where: { id } });
+}
+
+/** E-mails que ficaram em "Enviando…" (por exemplo, o servidor reiniciou no meio do envio) são reenviados. */
+export async function reenviarPresos() {
+  if (!emailReal()) return 0;
+  const presos = await prisma.emailEnviado.findMany({
+    where: { status: "ENVIANDO", enviadoEm: { lt: new Date(Date.now() - 2 * 60_000) } },
+    select: { id: true },
+    take: 50,
+  });
+  for (const { id } of presos) await reenviarEmail(id).catch((e) => console.error(`Reenvio do e-mail ${id} falhou`, e));
+  return presos.length;
 }

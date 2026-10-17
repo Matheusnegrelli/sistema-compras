@@ -1,15 +1,17 @@
 import { prisma } from "@/lib/db";
 import { provedorEmail } from "@/lib/email";
-import { Cabecalho, Status, Vazio } from "@/components/ui";
+import { Aviso, Cabecalho, Status, Vazio } from "@/components/ui";
+import { reenviarEmailAcao } from "@/acoes/emails";
 import { dataHora } from "@/lib/formato";
 import { emailHtml } from "@/lib/email-html";
 import { NOME_HOSPITAL } from "@/lib/marca";
 
-export default async function Emails() {
+export default async function Emails({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
   const emails = await prisma.emailEnviado.findMany({ orderBy: { enviadoEm: "desc" }, take: 100 });
   return (
     <div>
       <Cabecalho titulo="E-mails enviados" descricao="Tudo o que o sistema envia por e-mail: pedidos de cotação, pedidos de compra, dados para pagamento e confirmações aos fornecedores" />
+      <Aviso searchParams={searchParams} />
       {provedorEmail() && (
         <p className="mb-4 text-sm text-slate-500">
           Envio real ativo pelo {provedorEmail() === "RESEND" ? "Resend (API)" : "servidor SMTP"}{process.env.EMAIL_TESTE ? ` · todos os e-mails são desviados para ${process.env.EMAIL_TESTE}` : ""}.
@@ -46,6 +48,13 @@ export default async function Emails() {
                   </span>
                 )}
               </div>
+              {e.erro && <p className="mt-2 rounded bg-red-50 px-3 py-2 text-xs text-red-700">Erro: {e.erro}</p>}
+              {provedorEmail() && (e.status === "FALHOU" || e.status === "ENVIANDO") && (
+                <form action={reenviarEmailAcao} className="mt-2">
+                  <input type="hidden" name="id" value={e.id} />
+                  <button className="btn-secundario">↻ Reenviar este e-mail</button>
+                </form>
+              )}
               {/* Prévia: o mesmo HTML que chega na caixa de entrada do destinatário */}
               <iframe
                 title={`Prévia: ${e.assunto}`}
@@ -53,7 +62,6 @@ export default async function Emails() {
                 sandbox="allow-popups allow-popups-to-escape-sandbox"
                 className="mt-3 h-[720px] w-full rounded-lg border border-slate-200 bg-slate-100"
               />
-              {e.erro && <p className="mt-2 text-xs text-red-700">Erro: {e.erro}</p>}
             </details>
           ))}
         </div>

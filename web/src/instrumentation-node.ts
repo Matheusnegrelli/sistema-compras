@@ -1,8 +1,11 @@
 import { verificarCotacoes } from "./lib/rotina-cotacoes";
 import { sincronizarEstoque } from "./lib/sincronizacao";
+import { reenviarPresos } from "./lib/email";
 
 /** Agenda as rotinas automáticas de estoque e de cotações (só no runtime Node.js). */
 export function agendarRotinaEstoque() {
+  // Logo após iniciar, reenvia e-mails interrompidos por um reinício do servidor
+  setTimeout(() => reenviarPresos().catch((e) => console.error("Reenvio de e-mails falhou", e)), 30_000);
   const minutos = Number(process.env.SYNC_INTERVALO_MIN || "5");
   if (!minutos || minutos <= 0) return;
   const g = globalThis as unknown as { __rotinaEstoque?: NodeJS.Timeout };
@@ -10,6 +13,7 @@ export function agendarRotinaEstoque() {
   g.__rotinaEstoque = setInterval(() => {
     sincronizarEstoque("AUTOMATICA").catch((e) => console.error("Rotina de estoque falhou", e));
     verificarCotacoes().catch((e) => console.error("Rotina de cotações falhou", e));
+    reenviarPresos().catch((e) => console.error("Reenvio de e-mails falhou", e));
   }, minutos * 60_000);
   console.log(`Rotina automática de estoque a cada ${minutos} min`);
 }
