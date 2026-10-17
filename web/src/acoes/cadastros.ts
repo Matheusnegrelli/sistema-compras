@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { exigirSessao } from "@/lib/auth";
 import { registrarLog } from "@/lib/log";
+import { carregarDadosDemonstracao } from "@/lib/dados-demonstracao";
+import { restaurarEstoque } from "@/lib/estoque-api";
 import { falhar, numero, sucesso, texto } from "./util";
 
 // ---------- Produtos (RF01, RF03) ----------
@@ -152,4 +154,25 @@ export async function salvarSetor(fd: FormData) {
   await registrarLog(sessao.id, id ? "SETOR_ALTERADO" : "SETOR_CRIADO", "Setor", setor.id, `${sigla} - ${nome}`);
   revalidatePath("/setores");
   sucesso("/setores", `Setor ${nome} salvo`);
+}
+
+// ---------- Restaurar dados iniciais ----------
+/**
+ * Deixa o sistema como no primeiro acesso: apaga cotações, propostas, decisões, e-mails e logs,
+ * recarrega os produtos, fornecedores e o histórico de demonstração e volta o estoque da API.
+ * Os usuários e as senhas atuais são mantidos. O código e as configurações do servidor não mudam.
+ */
+export async function restaurarDadosIniciais(fd: FormData) {
+  const sessao = await exigirSessao("ADMIN");
+  if (texto(fd, "confirmacao").toUpperCase() !== "RESTAURAR") falhar("/configuracoes", 'Para confirmar, digite RESTAURAR no campo');
+  let avisoApi = "";
+  try {
+    await restaurarEstoque();
+  } catch {
+    avisoApi = " A API de estoque não respondeu; reinicie o serviço dela para voltar o estoque inicial.";
+  }
+  await carregarDadosDemonstracao(prisma, { manterUsuarios: true });
+  await registrarLog(sessao.id, "DADOS_RESTAURADOS", "Sistema", null, "Dados de demonstração restaurados pelo administrador");
+  revalidatePath("/", "layout");
+  sucesso("/configuracoes", `Pronto: o sistema voltou aos dados iniciais, como no primeiro acesso.${avisoApi}`);
 }

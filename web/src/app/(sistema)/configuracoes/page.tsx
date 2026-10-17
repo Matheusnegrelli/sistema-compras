@@ -1,7 +1,7 @@
 import { obterPesos } from "@/lib/consultas";
 import { exigirSessao, podeConfigurar } from "@/lib/auth";
 import { Aviso, Cabecalho } from "@/components/ui";
-import { salvarEnvio, salvarPesos } from "@/acoes/cadastros";
+import { restaurarDadosIniciais, salvarEnvio, salvarPesos } from "@/acoes/cadastros";
 import { obterConfiguracaoEnvio } from "@/lib/solicitacoes";
 
 const CRITERIOS = [
@@ -57,6 +57,23 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
         </div>
         {pode && <button className="btn-primario">Salvar automação</button>}
       </form>
+      {sessao.perfil === "ADMIN" && (
+        <form action={restaurarDadosIniciais} className="card mt-6 max-w-3xl border-red-200">
+          <h2>Restaurar dados iniciais</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Deixa o sistema como no primeiro acesso: apaga as cotações, propostas, aprovações, e-mails e logs criados nos testes,
+            recarrega os produtos, fornecedores e o histórico de exemplo e volta o estoque da API ao saldo inicial.
+            <strong> Os usuários e as senhas atuais são mantidos</strong>, e nenhuma funcionalidade do sistema é alterada.
+          </p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div>
+              <label className="rotulo" htmlFor="confirmacao">Digite RESTAURAR para confirmar</label>
+              <input id="confirmacao" className="campo w-56" name="confirmacao" autoComplete="off" required placeholder="RESTAURAR" />
+            </div>
+            <button className="btn-perigo">↺ Restaurar dados iniciais</button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

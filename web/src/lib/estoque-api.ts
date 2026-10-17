@@ -28,6 +28,11 @@ export async function registrarEntrada(sku: string, quantidade: number, motivo: 
   });
 }
 
+/** Volta o estoque da API aos saldos iniciais (usado ao restaurar os dados de demonstração). */
+export async function restaurarEstoque() {
+  return chamar<{ ok: boolean; itens: number }>("/api/v1/simulacao/reset", { method: "POST" });
+}
+
 export async function simularConsumo() {
   return chamar<{ alterados: { sku: string; saida: number; saldo: number }[] }>("/api/v1/simulacao/consumo", { method: "POST" });
 }
