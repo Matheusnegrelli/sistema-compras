@@ -61,10 +61,19 @@ export async function enviarPedidoCompra(cotacaoId: number, avisarDemais = true)
       `Local de entrega: Almoxarifado · ${NOME_HOSPITAL}`,
       `Forma de pagamento: ${forma.rotulo}`,
       "",
-      "Por favor, confirme o recebimento deste pedido respondendo a este e-mail. Enviaremos a confirmação do pagamento para você seguir com a entrega; informe a nota fiscal na entrega.",
+      "O pedido de compra segue em PDF, em anexo. Por favor, confirme o recebimento respondendo a este e-mail. Enviaremos a confirmação do pagamento para você seguir com a entrega; informe a nota fiscal na entrega.",
       ...assinatura,
     ].join("\n");
-    await enviarEmail({ para: fornecedor.email, assunto: `Pedido de compra nº ${cotacaoId} · ${NOME_HOSPITAL}`, corpo, solicitacaoId: solicitacaoDe(fornecedor.id) });
+    const { gerarPedidoPdf } = await import("./pedido-pdf");
+    const pdf = await gerarPedidoPdf(cotacaoId);
+    await enviarEmail({
+      para: fornecedor.email,
+      assunto: `Pedido de compra nº ${cotacaoId} · ${NOME_HOSPITAL}`,
+      corpo,
+      solicitacaoId: solicitacaoDe(fornecedor.id),
+      responderPara: decisao.gestor.email,
+      anexos: pdf ? [{ nome: `pedido-de-compra-${cotacaoId}.pdf`, conteudo: pdf }] : [],
+    });
     enviadoPara = fornecedor.email;
   }
 
@@ -85,6 +94,7 @@ export async function enviarPedidoCompra(cotacaoId: number, avisarDemais = true)
         ...assinatura,
       ].join("\n"),
       solicitacaoId: solicitacaoDe(p.fornecedorId),
+      responderPara: decisao.gestor.email,
     });
   }
   await prisma.decisao.update({ where: { id: decisao.id }, data: { pedidoEnviadoEm: enviadoPara ? new Date() : null } });
@@ -150,6 +160,7 @@ export async function avisarPagamentoAoFornecedor(cotacaoId: number) {
       `Enviado automaticamente pelo ${NOME_SISTEMA}`,
     ].join("\n"),
     solicitacaoId: solicitacao?.id,
+    responderPara: decisao.gestor.email,
   });
   return fornecedor.email;
 }

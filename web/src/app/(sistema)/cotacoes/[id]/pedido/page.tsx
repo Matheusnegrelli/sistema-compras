@@ -15,7 +15,7 @@ export default async function Pedido({ params }: { params: Promise<{ id: string 
 
   return (
     <div className="mx-auto max-w-4xl bg-white p-8 shadow-sm print:p-0 print:shadow-none">
-      <div className="nao-imprimir mb-6 flex justify-end"><BotaoImprimir /></div>
+      <div className="nao-imprimir mb-6 flex justify-end gap-2"><a className="btn-secundario" href={`/cotacoes/${cotacao.id}/pedido/pdf`} target="_blank" rel="noreferrer">⬇ Baixar PDF</a><BotaoImprimir /></div>
       <div className="border-b border-slate-200 pb-4">
         <div className="mb-3 flex items-center justify-between"><Logo /><p className="text-xs uppercase tracking-wide text-slate-500">Pedido de compra</p></div>
         <h1 className="mt-1">Pedido de compra nº {cotacao.id}</h1>

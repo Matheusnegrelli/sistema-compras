@@ -185,6 +185,10 @@ model EmailEnviado {
   corpo         String
   status        StatusEmail
   erro          String?
+  /// Endereço que recebe a resposta quando o destinatário clica em "Responder" (o comprador responsável)
+  responderPara String?
+  /// Nome do arquivo anexado (por exemplo, o pedido de compra em PDF)
+  anexo         String?
   enviadoEm     DateTime            @default(now())
 
   @@index([enviadoEm])

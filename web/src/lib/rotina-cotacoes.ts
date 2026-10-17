@@ -18,7 +18,7 @@ const urlCotacao = (id: number) => `${(process.env.APP_URL || "http://localhost:
 export async function verificarCotacoes(agora = new Date()) {
   const abertas = await prisma.cotacao.findMany({
     where: { status: "ABERTA", prazoResposta: { not: null } },
-    include: { solicitacoes: { include: { fornecedor: true } }, _count: { select: { propostas: true } } },
+    include: { criadoPor: true, solicitacoes: { include: { fornecedor: true } }, _count: { select: { propostas: true } } },
   });
   let lembretes = 0;
   let avisos = 0;
@@ -42,6 +42,7 @@ export async function verificarCotacoes(agora = new Date()) {
             `Enviado automaticamente pelo ${NOME_SISTEMA}`,
           ].join("\n"),
           solicitacaoId: s.id,
+          responderPara: c.criadoPor?.email,
         });
         await prisma.solicitacaoCotacao.update({ where: { id: s.id }, data: { lembreteEm: agora } });
         lembretes++;

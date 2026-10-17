@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import { emailReal } from "@/lib/email";
 import { Cabecalho, Status, Vazio } from "@/components/ui";
 import { dataHora } from "@/lib/formato";
+import { emailHtml } from "@/lib/email-html";
+import { NOME_HOSPITAL } from "@/lib/marca";
 
 export default async function Emails() {
   const emails = await prisma.emailEnviado.findMany({ orderBy: { enviadoEm: "desc" }, take: 100 });
@@ -11,7 +13,7 @@ export default async function Emails() {
       {!emailReal() && (
         <div className="mb-5 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
           Modo demonstração: nenhum servidor de e-mail (SMTP) está configurado, então as mensagens ficam registradas aqui sem sair do sistema.
-          Para enviar de verdade, preencha as variáveis SMTP no arquivo <code>.env</code>.
+          Para enviar de verdade, preencha as variáveis SMTP no arquivo <code>.env</code>. Abra um e-mail para ver como ele chega ao destinatário.
         </div>
       )}
       {emails.length === 0 ? (
@@ -26,11 +28,25 @@ export default async function Emails() {
                 <span className="text-slate-500">para {e.para}</span>
                 <span className="ml-auto text-xs text-slate-400">{dataHora(e.enviadoEm)}</span>
               </summary>
-              <pre className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-4 font-sans text-sm text-slate-700">
-                {e.corpo.split(/(https?:\/\/\S+)/).map((parte, i) =>
-                  /^https?:\/\//.test(parte) ? <a key={i} className="link" href={parte} target="_blank" rel="noreferrer">{parte}</a> : parte,
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                <span>Para: <strong className="text-slate-700">{e.para}</strong></span>
+                {e.responderPara && <span>Respostas vão para: <strong className="text-slate-700">{e.responderPara}</strong></span>}
+                {e.anexo && (
+                  <span>
+                    📎 Anexo:{" "}
+                    {e.anexo.match(/pedido-de-compra-(\d+)\.pdf/) ? (
+                      <a className="link" href={`/cotacoes/${e.anexo.match(/pedido-de-compra-(\d+)\.pdf/)![1]}/pedido/pdf`} target="_blank" rel="noreferrer">{e.anexo}</a>
+                    ) : e.anexo}
+                  </span>
                 )}
-              </pre>
+              </div>
+              {/* Prévia: o mesmo HTML que chega na caixa de entrada do destinatário */}
+              <iframe
+                title={`Prévia: ${e.assunto}`}
+                srcDoc={emailHtml(e.assunto, e.corpo, NOME_HOSPITAL)}
+                sandbox="allow-popups allow-popups-to-escape-sandbox"
+                className="mt-3 h-[720px] w-full rounded-lg border border-slate-200 bg-slate-100"
+              />
               {e.erro && <p className="mt-2 text-xs text-red-700">Erro: {e.erro}</p>}
             </details>
           ))}

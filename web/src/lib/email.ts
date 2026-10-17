@@ -1,7 +1,10 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { prisma } from "./db";
+import { emailHtml } from "./email-html";
+import { NOME_HOSPITAL } from "./marca";
 
-type Email = { para: string; assunto: string; corpo: string; solicitacaoId?: number };
+type Anexo = { nome: string; conteudo: Buffer };
+type Email = { para: string; assunto: string; corpo: string; solicitacaoId?: number; responderPara?: string | null; anexos?: Anexo[] };
 
 let transporte: Transporter | null | undefined;
 
@@ -27,7 +30,7 @@ export function emailReal() {
 }
 
 /** Envia o e-mail e registra na caixa de saída do sistema, com sucesso ou falha. */
-export async function enviarEmail({ para, assunto, corpo, solicitacaoId }: Email) {
+export async function enviarEmail({ para, assunto, corpo, solicitacaoId, responderPara, anexos = [] }: Email) {
   const t = obterTransporte();
   let status: "ENVIADO" | "DEMONSTRACAO" | "FALHOU" = "DEMONSTRACAO";
   let erro: string | null = null;
@@ -39,7 +42,10 @@ export async function enviarEmail({ para, assunto, corpo, solicitacaoId }: Email
         from: process.env.SMTP_REMETENTE || process.env.SMTP_USUARIO,
         to: teste || para,
         subject: teste ? `[para ${para}] ${assunto}` : assunto,
+        replyTo: responderPara || undefined,
         text: corpo,
+        html: emailHtml(assunto, corpo, NOME_HOSPITAL),
+        attachments: anexos.map((a) => ({ filename: a.nome, content: a.conteudo, contentType: "application/pdf" })),
       });
       status = "ENVIADO";
     } catch (e) {
@@ -47,5 +53,7 @@ export async function enviarEmail({ para, assunto, corpo, solicitacaoId }: Email
       erro = e instanceof Error ? e.message : String(e);
     }
   }
-  return prisma.emailEnviado.create({ data: { para, assunto, corpo, status, erro, solicitacaoId } });
+  return prisma.emailEnviado.create({
+    data: { para, assunto, corpo, status, erro, solicitacaoId, responderPara: responderPara || null, anexo: anexos.map((a) => a.nome).join(", ") || null },
+  });
 }

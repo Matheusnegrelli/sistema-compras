@@ -3,9 +3,9 @@ import { prisma } from "./db";
 import { enviarEmail } from "./email";
 import { registrarLog } from "./log";
 import { dataHora } from "./formato";
-import { NOME_SISTEMA } from "./marca";
+import { NOME_HOSPITAL, NOME_SISTEMA } from "./marca";
 
-export const NOME_HOSPITAL = process.env.NOME_HOSPITAL || "Hospital Regional";
+export { NOME_HOSPITAL };
 
 export function urlResposta(token: string) {
   const base = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -59,6 +59,9 @@ export async function enviarSolicitacoes(cotacaoId: number, usuarioId: number | 
   const fornecedores = await prisma.fornecedor.findMany({
     where: { ativo: true, email: { not: null }, id: { notIn: convidados } },
   });
+  // Respostas ao e-mail vão para quem abriu a cotação (ou para o setor, se foi a rotina automática)
+  const responsavelId = usuarioId ?? cotacao.criadoPorId;
+  const responsavel = responsavelId ? await prisma.usuario.findUnique({ where: { id: responsavelId } }) : null;
   const listaItens = cotacao.itens.map((i) => `  - ${i.produto.nome} (${i.produto.sku}): ${i.quantidade} ${i.produto.unidade} · ${i.produto.setor?.nome ?? "-"}`);
   for (const f of fornecedores) {
     const s = await prisma.solicitacaoCotacao.create({
@@ -86,6 +89,7 @@ export async function enviarSolicitacoes(cotacaoId: number, usuarioId: number | 
       assunto: `Pedido de cotação #${cotacaoId} · ${cotacao.categoria} (${cotacao.itens.length} ${cotacao.itens.length === 1 ? "item" : "itens"})`,
       corpo,
       solicitacaoId: s.id,
+      responderPara: responsavel?.email,
     });
   }
   if (fornecedores.length > 0) {
