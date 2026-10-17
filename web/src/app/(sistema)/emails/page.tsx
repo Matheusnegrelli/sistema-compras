@@ -7,7 +7,7 @@ export default async function Emails() {
   const emails = await prisma.emailEnviado.findMany({ orderBy: { enviadoEm: "desc" }, take: 100 });
   return (
     <div>
-      <Cabecalho titulo="E-mails enviados" descricao="Pedidos de cotação enviados automaticamente aos fornecedores" />
+      <Cabecalho titulo="E-mails enviados" descricao="Tudo o que o sistema envia por e-mail: pedidos de cotação, pedidos de compra, dados para pagamento e confirmações aos fornecedores" />
       {!emailReal() && (
         <div className="mb-5 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
           Modo demonstração: nenhum servidor de e-mail (SMTP) está configurado, então as mensagens ficam registradas aqui sem sair do sistema.
