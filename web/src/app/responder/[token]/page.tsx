@@ -74,7 +74,7 @@ export default async function Responder({ params, searchParams }: { params: Prom
           )}
           <p className="text-sm text-slate-500">Informe o preço de cada item. Se você não tiver algum deles, marque "Não tenho" na linha do item.</p>
           <div className="overflow-x-auto">
-            <table className="tabela">
+            <table className="tabela tabela-cartoes">
               <thead><tr><th>Item</th><th>Quantidade</th><th>Preço unit. (R$)</th><th>Qtd. disponível</th><th>Qtd. mínima</th><th>Não tenho</th></tr></thead>
               <tbody>
                 {cotacao.itens.map((i) => {
@@ -82,10 +82,10 @@ export default async function Responder({ params, searchParams }: { params: Prom
                   return (
                     <tr key={i.id} className="linha-item">
                       <td className="min-w-[180px] text-sm"><span className="font-mono text-xs text-slate-500">{i.produto.sku}</span> {i.produto.nome}</td>
-                      <td className="whitespace-nowrap text-sm font-medium">{i.quantidade} {i.produto.unidade}</td>
-                      <td><input className="campo min-w-[90px]" name={`preco_${i.id}`} type="number" step="0.01" min="0.01" defaultValue={atual?.precoUnitario} /></td>
-                      <td><input className="campo min-w-[80px]" name={`disp_${i.id}`} type="number" min={0} defaultValue={atual?.quantidadeDisponivel ?? i.quantidade} /></td>
-                      <td><input className="campo min-w-[70px]" name={`min_${i.id}`} type="number" min={1} defaultValue={atual?.quantidadeMinima ?? 1} /></td>
+                      <td data-rotulo="Quantidade pedida" className="whitespace-nowrap text-sm font-medium">{i.quantidade} {i.produto.unidade}</td>
+                      <td data-rotulo="Preço unit. (R$)"><input className="campo min-w-[90px]" name={`preco_${i.id}`} type="number" step="0.01" min="0.01" defaultValue={atual?.precoUnitario} /></td>
+                      <td data-rotulo="Qtd. disponível"><input className="campo min-w-[80px]" name={`disp_${i.id}`} type="number" min={0} defaultValue={atual?.quantidadeDisponivel ?? i.quantidade} /></td>
+                      <td data-rotulo="Qtd. mínima"><input className="campo min-w-[70px]" name={`min_${i.id}`} type="number" min={1} defaultValue={atual?.quantidadeMinima ?? 1} /></td>
                       <td className="text-center"><label className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-xs text-slate-600"><input type="checkbox" name={`sem_${i.id}`} className="h-4 w-4 accent-red-600" defaultChecked={!!proposta && !atual} /> Não tenho</label></td>
                     </tr>
                   );

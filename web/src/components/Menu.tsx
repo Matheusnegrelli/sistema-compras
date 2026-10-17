@@ -19,6 +19,12 @@ const ITENS = [
   { href: "/logs", rotulo: "Logs", icone: "🧾" },
 ];
 
+/** Fecha a gaveta do menu no celular depois de escolher uma página. */
+function fecharMenuMovel() {
+  const caixa = document.getElementById("menu-movel") as HTMLInputElement | null;
+  if (caixa) caixa.checked = false;
+}
+
 export function Menu({ admin, alertas }: { admin: boolean; alertas: number }) {
   const caminho = usePathname();
   return (
@@ -29,6 +35,7 @@ export function Menu({ admin, alertas }: { admin: boolean; alertas: number }) {
           <Link
             key={i.href}
             href={i.href}
+            onClick={fecharMenuMovel}
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${ativo ? "bg-white/15 font-medium text-white" : "text-marca-100 hover:bg-white/10"}`}
           >
             <span aria-hidden>{i.icone}</span>

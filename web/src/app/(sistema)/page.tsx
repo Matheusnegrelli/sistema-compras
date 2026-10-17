@@ -99,6 +99,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         {necessidades.length === 0 ? (
           <Vazio>Nenhum produto abaixo do estoque mínimo. 🎉</Vazio>
         ) : (
+          <div className="overflow-x-auto">
           <table className="tabela">
             <thead>
               <tr><th>Produto</th><th>Setor</th><th>Criticidade</th><th>Estoque</th><th>Mínimo</th><th>Comprar</th><th>Status</th><th>Detectado em</th></tr>
@@ -118,6 +119,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

@@ -21,18 +21,20 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
       <Cabecalho titulo="Configurações do algoritmo e da automação" descricao="Pontuação ponderada das propostas (seção 4.5 do projeto)" />
       <Aviso searchParams={searchParams} />
       <form action={salvarPesos} className="card max-w-3xl">
+        <div className="overflow-x-auto">
         <table className="tabela">
           <thead><tr><th>Critério</th><th>Como a nota (0 a 1) é calculada</th><th className="w-32">Peso (%)</th></tr></thead>
           <tbody>
             {CRITERIOS.map((c) => (
               <tr key={c.campo}>
                 <td className="font-medium">{c.rotulo}</td>
-                <td className="text-slate-500">{c.explicacao}</td>
-                <td><input className="campo" type="number" min={0} max={100} step="1" name={c.campo} defaultValue={pesos[c.campo]} disabled={!pode} /></td>
+                <td className="min-w-[14rem] !whitespace-normal text-slate-500">{c.explicacao}</td>
+                <td><input className="campo min-w-[5rem]" type="number" min={0} max={100} step="1" name={c.campo} defaultValue={pesos[c.campo]} disabled={!pode} /></td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
         <div className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
           <strong>Pontuação final</strong> = Σ (nota do critério × peso), de 0 a 100. A proposta com maior pontuação é recomendada,
           mas quem analisa e seleciona a proposta é o comprador. A soma dos pesos deve ser 100%.

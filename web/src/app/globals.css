@@ -16,14 +16,27 @@
   .btn-perigo { @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50; }
   .btn-sucesso { @apply btn bg-emerald-600 text-white hover:bg-emerald-700; }
   .rotulo { @apply mb-1 block text-sm font-medium text-slate-700; }
-  .campo { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-marca-500 focus:outline-none focus:ring-2 focus:ring-marca-100; }
+  .campo { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base focus:border-marca-500 sm:text-sm focus:outline-none focus:ring-2 focus:ring-marca-100; }
   .tabela { @apply w-full text-left text-sm; }
+  /* No celular as tabelas rolam para o lado dentro do card, sem quebrar a página */
+  @media (max-width: 767px) { .tabela td, .tabela th { @apply whitespace-nowrap; } .tabela td:first-child { @apply min-w-[11rem] whitespace-normal; } }
   .tabela th { @apply border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500; }
   .tabela td { @apply border-b border-slate-100 px-3 py-2 align-middle; }
   .tabela tr:hover td { @apply bg-slate-50/60; }
   /* Item marcado como "Não tenho": apaga os campos da linha */
   .linha-item:has(input[type="checkbox"]:checked) input[type="number"] { @apply pointer-events-none bg-slate-100 text-transparent opacity-50; }
   .linha-item:has(input[type="checkbox"]:checked) td:first-child { @apply text-slate-400 line-through; }
+  /* Tabela que vira um cartão por linha no celular (portal do fornecedor) */
+  @media (max-width: 767px) {
+    .tabela-cartoes thead { @apply hidden; }
+    .tabela-cartoes tr { @apply mb-3 grid grid-cols-2 gap-3 rounded-lg border border-slate-200 p-3; }
+    .tabela-cartoes td { @apply block min-w-0 whitespace-normal border-0 p-0 text-left; }
+    .tabela-cartoes td:first-child { @apply col-span-2 min-w-0 font-medium; }
+    .tabela-cartoes td[data-rotulo]::before { content: attr(data-rotulo); @apply mb-1 block text-xs font-normal text-slate-500; }
+    .tabela-cartoes td:last-child { @apply flex items-end; }
+    .tabela-cartoes .campo { @apply min-w-0; }
+    .tabela-cartoes tr:hover td { @apply bg-transparent; }
+  }
   .link { @apply font-medium text-marca-700 hover:underline; }
 }
 
