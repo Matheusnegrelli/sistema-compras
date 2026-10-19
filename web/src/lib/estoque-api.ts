@@ -4,16 +4,36 @@ export type ItemEstoque = { sku: string; descricao: string; setor?: string; unid
 
 const URL_BASE = () => process.env.ESTOQUE_API_URL || "http://localhost:4000";
 
+const ACORDANDO = new Set([502, 503, 504]);
+const esperar = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
+/**
+ * No plano gratuito do Render a API "dorme" sem uso e leva até um minuto para acordar, respondendo 502/503
+ * nesse intervalo. Por isso a chamada tenta de novo algumas vezes antes de mostrar o erro.
+ */
 async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(`${URL_BASE()}${caminho}`, {
-    ...init,
-    cache: "no-store",
-    signal: AbortSignal.timeout(8000),
-    headers: { "content-type": "application/json", "x-api-key": process.env.ESTOQUE_API_KEY || "", ...init?.headers },
-  });
-  const corpo = await resp.json().catch(() => ({}));
-  if (!resp.ok) throw new Error(corpo?.erro || `API de estoque respondeu ${resp.status}`);
-  return corpo as T;
+  const pausas = [0, 5_000, 10_000, 15_000, 20_000];
+  let ultimoErro: Error = new Error("API de estoque indisponível");
+  for (const pausa of pausas) {
+    if (pausa) await esperar(pausa);
+    let resp: Response;
+    try {
+      resp = await fetch(`${URL_BASE()}${caminho}`, {
+        ...init,
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+        headers: { "content-type": "application/json", "x-api-key": process.env.ESTOQUE_API_KEY || "", ...init?.headers },
+      });
+    } catch (e) {
+      ultimoErro = e instanceof Error ? e : new Error(String(e));
+      continue;
+    }
+    const corpo = await resp.json().catch(() => ({}));
+    if (resp.ok) return corpo as T;
+    ultimoErro = new Error(corpo?.erro || `API de estoque respondeu ${resp.status}`);
+    if (!ACORDANDO.has(resp.status)) throw ultimoErro;
+  }
+  throw new Error(`${ultimoErro.message}. A API pode estar iniciando; tente de novo em um minuto.`);
 }
 
 export async function listarEstoque() {
@@ -39,7 +59,7 @@ export async function simularConsumo() {
 
 export async function statusApi() {
   try {
-    const resp = await fetch(`${URL_BASE()}/health`, { cache: "no-store", signal: AbortSignal.timeout(3000) });
+    const resp = await fetch(`${URL_BASE()}/health`, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
     return resp.ok;
   } catch {
     return false;
