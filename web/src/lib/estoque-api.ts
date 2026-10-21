@@ -12,7 +12,7 @@ const esperar = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
  * nesse intervalo. Por isso a chamada tenta de novo algumas vezes antes de mostrar o erro.
  */
 async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
-  const pausas = [0, 5_000, 10_000, 15_000, 20_000];
+  const pausas = [0, 4_000, 8_000, 12_000, 16_000];
   let ultimoErro: Error = new Error("API de estoque indisponível");
   for (const pausa of pausas) {
     if (pausa) await esperar(pausa);
@@ -21,7 +21,7 @@ async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
       resp = await fetch(`${URL_BASE()}${caminho}`, {
         ...init,
         cache: "no-store",
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(12_000),
         headers: { "content-type": "application/json", "x-api-key": process.env.ESTOQUE_API_KEY || "", ...init?.headers },
       });
     } catch (e) {
@@ -30,6 +30,8 @@ async function chamar<T>(caminho: string, init?: RequestInit): Promise<T> {
     }
     const corpo = await resp.json().catch(() => ({}));
     if (resp.ok) return corpo as T;
+    if (resp.status === 404 && !corpo?.erro)
+      throw new Error(`nenhuma API encontrada em ${URL_BASE()}. Confira se ESTOQUE_API_URL é o endereço do serviço da API no Render`);
     ultimoErro = new Error(corpo?.erro || `API de estoque respondeu ${resp.status}`);
     if (!ACORDANDO.has(resp.status)) throw ultimoErro;
   }

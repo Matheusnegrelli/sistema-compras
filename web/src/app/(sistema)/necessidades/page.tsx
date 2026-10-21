@@ -5,6 +5,7 @@ import { FiltroSetor } from "@/components/FiltroSetor";
 import { listarSetores, setorDoFiltro } from "@/lib/consultas";
 import { dataHora } from "@/lib/formato";
 import { alterarQuantidades, cancelarNecessidade, criarNecessidadeManual, gerarCotacao, sincronizarAgora } from "@/acoes/compras";
+import { BotaoEnviar } from "@/components/BotaoEnviar";
 
 export default async function Necessidades({ searchParams }: { searchParams: Promise<{ status?: string; setor?: string; erro?: string; ok?: string }> }) {
   const { status, setor } = await searchParams;
@@ -35,7 +36,7 @@ export default async function Necessidades({ searchParams }: { searchParams: Pro
         <FiltroSetor setores={await listarSetores()} />
         <form action={sincronizarAgora}>
           <input type="hidden" name="volta" value="/necessidades" />
-          <button className="btn-primario">🔄 Verificar estoque agora</button>
+          <BotaoEnviar aguarde="Consultando a API… (pode levar até 1 min)">🔄 Verificar estoque agora</BotaoEnviar>
         </form>
       </Cabecalho>
       <Aviso searchParams={searchParams} />

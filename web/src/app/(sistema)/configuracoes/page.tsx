@@ -3,6 +3,7 @@ import { exigirSessao, podeConfigurar } from "@/lib/auth";
 import { Aviso, Cabecalho } from "@/components/ui";
 import { restaurarDadosIniciais, salvarEnvio, salvarPesos } from "@/acoes/cadastros";
 import { obterConfiguracaoEnvio } from "@/lib/solicitacoes";
+import { BotaoEnviar } from "@/components/BotaoEnviar";
 
 const CRITERIOS = [
   { campo: "preco", rotulo: "Preço", explicacao: "Custo dos itens pelo menor preço de cada item ÷ custo pela proposta" },
@@ -81,7 +82,7 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
               <label className="rotulo" htmlFor="confirmacao">Digite RESTAURAR para confirmar</label>
               <input id="confirmacao" className="campo w-56" name="confirmacao" autoComplete="off" required placeholder="RESTAURAR" />
             </div>
-            <button className="btn-perigo">↺ Restaurar dados iniciais</button>
+            <BotaoEnviar className="btn-perigo" aguarde="Restaurando…">↺ Restaurar dados iniciais</BotaoEnviar>
           </div>
         </form>
       )}

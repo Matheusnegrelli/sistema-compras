@@ -8,6 +8,7 @@ import { Cabecalho, Criticidade, Indicador, Status, Vazio, Aviso } from "@/compo
 import { GraficoEstoque, GraficoFornecedores, GraficoSetores } from "@/components/Graficos";
 import { dataHora, duracao, moeda } from "@/lib/formato";
 import { sincronizarAgora } from "@/acoes/compras";
+import { BotaoEnviar } from "@/components/BotaoEnviar";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ setor?: string; erro?: string; ok?: string }> }) {
   const setorId = setorDoFiltro((await searchParams).setor);
@@ -54,7 +55,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </span>
         <form action={sincronizarAgora}>
           <input type="hidden" name="volta" value="/" />
-          <button className="btn-primario">🔄 Sincronizar estoque</button>
+          <BotaoEnviar aguarde="Consultando a API… (pode levar até 1 min)">🔄 Sincronizar estoque</BotaoEnviar>
         </form>
       </Cabecalho>
       <Aviso searchParams={searchParams} />

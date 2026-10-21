@@ -3,6 +3,7 @@ import { listarEstoque, statusApi, type ItemEstoque } from "@/lib/estoque-api";
 import { Aviso, Cabecalho, Status } from "@/components/ui";
 import { dataHora } from "@/lib/formato";
 import { simularConsumoEstoque, sincronizarAgora } from "@/acoes/compras";
+import { BotaoEnviar } from "@/components/BotaoEnviar";
 
 export default async function Integracao({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
   const online = await statusApi();
@@ -23,10 +24,10 @@ export default async function Integracao({ searchParams }: { searchParams: Promi
   return (
     <div>
       <Cabecalho titulo="Integração com o estoque (API)" descricao="Consulta automática ao sistema de estoque do hospital por API REST (RF04, RNF06)">
-        <form action={simularConsumoEstoque}><button className="btn-secundario">📉 Simular consumo no estoque</button></form>
+        <form action={simularConsumoEstoque}><BotaoEnviar className="btn-secundario" aguarde="Simulando…">📉 Simular consumo no estoque</BotaoEnviar></form>
         <form action={sincronizarAgora}>
           <input type="hidden" name="volta" value="/integracao" />
-          <button className="btn-primario">🔄 Sincronizar agora</button>
+          <BotaoEnviar aguarde="Consultando a API… (pode levar até 1 min)">🔄 Sincronizar agora</BotaoEnviar>
         </form>
       </Cabecalho>
       <Aviso searchParams={searchParams} />
