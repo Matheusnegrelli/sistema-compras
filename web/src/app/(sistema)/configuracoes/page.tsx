@@ -62,9 +62,20 @@ export default async function Configuracoes({ searchParams }: { searchParams: Pr
           <h2>Restaurar dados iniciais</h2>
           <p className="mt-1 text-sm text-slate-600">
             Deixa o sistema como no primeiro acesso: apaga as cotações, propostas, aprovações, e-mails e logs criados nos testes,
-            recarrega os produtos, fornecedores e o histórico de exemplo e volta o estoque da API ao saldo inicial.
+            recarrega os produtos e fornecedores e volta o estoque da API ao saldo inicial.
             <strong> Os usuários e as senhas atuais são mantidos</strong>, e nenhuma funcionalidade do sistema é alterada.
           </p>
+          <fieldset className="mt-3 space-y-1 text-sm">
+            <legend className="rotulo">Como deixar o sistema</legend>
+            <label className="flex items-start gap-2">
+              <input type="radio" name="historico" value="nao" defaultChecked className="mt-1" />
+              <span><strong>Zerado:</strong> nenhuma compra registrada. O dashboard começa sem valores e só mostra os itens abaixo do estoque mínimo.</span>
+            </label>
+            <label className="flex items-start gap-2">
+              <input type="radio" name="historico" value="sim" className="mt-1" />
+              <span><strong>Com histórico de exemplo:</strong> seis compras já decididas, para o dashboard e os relatórios terem dados.</span>
+            </label>
+          </fieldset>
           <div className="mt-3 flex flex-wrap items-end gap-3">
             <div>
               <label className="rotulo" htmlFor="confirmacao">Digite RESTAURAR para confirmar</label>

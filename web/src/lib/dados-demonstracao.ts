@@ -12,7 +12,10 @@ function diasAtras(dias: number, horas = 0) {
   return new Date(Date.now() - dias * 86400000 - horas * 3600000);
 }
 
-export async function carregarDadosDemonstracao(prisma: PrismaClient, { manterUsuarios = false }: { manterUsuarios?: boolean } = {}) {
+export async function carregarDadosDemonstracao(
+  prisma: PrismaClient,
+  { manterUsuarios = false, comHistorico = true }: { manterUsuarios?: boolean; comHistorico?: boolean } = {},
+) {
   await prisma.log.deleteMany();
   await prisma.emailEnviado.deleteMany();
   await prisma.itemProposta.deleteMany();
@@ -61,7 +64,7 @@ export async function carregarDadosDemonstracao(prisma: PrismaClient, { manterUs
     { categoria: "Laboratório", dias: 3, itens: [["LAB-002", 6], ["LAB-001", 16]], propostas: [[0, 1.0, 5, 1], [3, 0.94, 8, 1], [1, 1.04, 3, 1]] },
   ] as const;
 
-  for (const h of historico) {
+  for (const h of comHistorico ? historico : []) {
     const cotacao = await prisma.cotacao.create({ data: { categoria: h.categoria, criadoPorId: comprador.id, status: "APROVADA", criadoEm: diasAtras(h.dias, 2), encerradaEm: diasAtras(h.dias, 1) } });
     const itens = [];
     for (const [sku, qtd] of h.itens) {
@@ -121,5 +124,5 @@ export async function carregarDadosDemonstracao(prisma: PrismaClient, { manterUs
   }
 
   await prisma.log.create({ data: { usuarioId: admin.id, acao: "CARGA_INICIAL", entidade: "Sistema", detalhes: "Dados de demonstração carregados" } });
-  return { setores: setores.length, produtos: produtos.length, fornecedores: fornecedores.length, historico: historico.length };
+  return { setores: setores.length, produtos: produtos.length, fornecedores: fornecedores.length, historico: comHistorico ? historico.length : 0 };
 }

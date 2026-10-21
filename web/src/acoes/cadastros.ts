@@ -159,7 +159,7 @@ export async function salvarSetor(fd: FormData) {
 // ---------- Restaurar dados iniciais ----------
 /**
  * Deixa o sistema como no primeiro acesso: apaga cotações, propostas, decisões, e-mails e logs,
- * recarrega os produtos, fornecedores e o histórico de demonstração e volta o estoque da API.
+ * recarrega os produtos e fornecedores (com ou sem o histórico de exemplo) e volta o estoque da API.
  * Os usuários e as senhas atuais são mantidos. O código e as configurações do servidor não mudam.
  */
 export async function restaurarDadosIniciais(fd: FormData) {
@@ -171,8 +171,9 @@ export async function restaurarDadosIniciais(fd: FormData) {
   } catch {
     avisoApi = " A API de estoque não respondeu; reinicie o serviço dela para voltar o estoque inicial.";
   }
-  await carregarDadosDemonstracao(prisma, { manterUsuarios: true });
+  const comHistorico = texto(fd, "historico") === "sim";
+  await carregarDadosDemonstracao(prisma, { manterUsuarios: true, comHistorico });
   await registrarLog(sessao.id, "DADOS_RESTAURADOS", "Sistema", null, "Dados de demonstração restaurados pelo administrador");
   revalidatePath("/", "layout");
-  sucesso("/configuracoes", `Pronto: o sistema voltou aos dados iniciais, como no primeiro acesso.${avisoApi}`);
+  sucesso("/configuracoes", `Pronto: o sistema voltou aos dados iniciais${comHistorico ? ", com o histórico de exemplo" : ", sem nenhuma compra registrada"}.${avisoApi}`);
 }
